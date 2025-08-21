@@ -9267,14 +9267,14 @@ return ${only};`);
   output.insertRight(node.input.length, "\n}};\n");
   return String(output);
 }
-function getFunctionBody(input, forMerge) {
+function getFunctionBody(input) {
   const compiled = parseJavaScript(input, 0, true);
   const node = compiled[0].body.body[0];
   const params = getParams(node);
   const types2 = getTypes(node);
   const body = node.body.body;
   const last = body[body.length - 1];
-  const returnValues = forMerge ? {} : getReturn(last);
+  const returnValues = getReturn(last);
   const output = new Sourcemap(input).trim();
   output.delete(0, body[0].start);
   output.delete(last.start, input.length);
@@ -10407,8 +10407,6 @@ class ProgramState {
     __publicField(this, "startTime");
     // indicates that the last evaluation of the program resulted in an error
     __publicField(this, "errored");
-    // a flag whether any resolved value was updated in an evaluation step
-    __publicField(this, "updated");
     //  a timer of some kind that will call evaluate() in the later time.
     __publicField(this, "pendingEvaluation");
     // user visible meta feature that has the currently evaluating node
@@ -10429,8 +10427,11 @@ class ProgramState {
     __publicField(this, "evaluationAlarm");
     __publicField(this, "pendingAnimationFrame");
     __publicField(this, "log");
+    __publicField(this, "announcer");
     __publicField(this, "futureScripts");
     __publicField(this, "breakpoints");
+    // a set of changed nodes after one cycle of evaluation  
+    __publicField(this, "changedNodeNames");
     this.scripts = [];
     this.order = [];
     this.types = /* @__PURE__ */ new Map();
@@ -10441,7 +10442,6 @@ class ProgramState {
     this.inputArray = /* @__PURE__ */ new Map();
     this.time = 0, this.changeList = /* @__PURE__ */ new Map();
     this.startTime = startTime;
-    this.updated = false;
     this.evaluationAlarm = [];
     this.pendingAnimationFrame = false;
     this.noSelfSchedule = false;
@@ -10455,6 +10455,7 @@ class ProgramState {
     this.programStates = /* @__PURE__ */ new Map();
     this.breakpoints = /* @__PURE__ */ new Set();
     this.nextDeps = /* @__PURE__ */ new Set();
+    this.changedNodeNames = /* @__PURE__ */ new Set();
   }
   start() {
     var _a2, _b2, _c;
@@ -10797,9 +10798,9 @@ class ProgramState {
   findDecls(code) {
     return findDecls(code);
   }
-  getFunctionBody(func, forMerge = true) {
+  getFunctionBody(func) {
     const str = typeof func === "function" ? func.toString() : func;
-    return getFunctionBody(str, forMerge);
+    return getFunctionBody(str);
   }
   findDecl(name) {
     const decls = this.findDecls(this.scripts.join("\n"));
@@ -10824,7 +10825,7 @@ class ProgramState {
   }
   evaluate(now) {
     this.time = now - this.startTime;
-    this.updated = false;
+    this.changedNodeNames = /* @__PURE__ */ new Set();
     this.prelude();
     let trace;
     if (this.breakpoints.size > 0) {
@@ -10910,7 +10911,7 @@ class ProgramState {
     }
     this.scheduleAlarm();
     this.thisNode = void 0;
-    return this.updated;
+    return this.changedNodeNames;
   }
   prelude() {
     let i2 = 0;
@@ -11062,7 +11063,10 @@ class ProgramState {
   }
   setResolved(varName, value) {
     this.resolved.set(varName, value);
-    this.updated = true;
+    this.changedNodeNames.add(varName);
+    if (this.announcer) {
+      this.announcer(varName, value.value);
+    }
     if (this.nextDeps.has(varName)) {
       this.requestAlarm(1);
     }
@@ -11076,7 +11080,7 @@ class ProgramState {
     let scripts = this.scripts;
     const outputs = [];
     funcs.forEach((func) => {
-      const { output } = getFunctionBody(func.toString(), true);
+      const { output } = getFunctionBody(func.toString());
       outputs.push(output);
     });
     this.updateProgram([...scripts, ...outputs]);
@@ -11128,7 +11132,7 @@ class ProgramState {
       }
       const maybeOldFunc = subProgramState == null ? void 0 : subProgramState.funcString;
       if (newProgramState || funcString !== maybeOldFunc) {
-        let { params, types: types2, returnValues: rs, output } = getFunctionBody(funcString, false);
+        let { params, types: types2, returnValues: rs, output } = getFunctionBody(funcString);
         returnValues = rs;
         const receivers = params.map((r) => `const ${r} = ${(types2 == null ? void 0 : types2.get(r)) === "Behavior" ? "Behaviors" : "Events"}.receiver();`).join("\n");
         programState.setupProgram([receivers, output], func.name);

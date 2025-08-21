@@ -8,16 +8,53 @@ import {ProgramState} from "./renkon-core.js";
 
 function decls(funcStr, realm) {
   const state = new ProgramState(0);
-  const {params, types, returnValues, output} = state.getFunctionBody(funcStr);
+
+  const {output} = state.getFunctionBody(funcStr);
+  state.setupProgram([output]);
 
   const decls = state.findDecls(output);
-
-  const check = (d) => d.decls.length === 1 && realm[d.decls[0]] === "Model";
+  const check = (d) => d.decls.length > 0 && realm[d.decls[0]] === "Model";
 
   const modelDecls = decls.filter((decl) => check(decl));
   const viewDecls = decls.filter((decl) => !check(decl));
 
-  return {modelDecls, viewDecls, params, types, returnValues};
+  const modelState = new ProgramState(0);
+  modelState.setLog(() => {});
+  modelState.setupProgram([modelDecls.map(m => m.code).join("\n")]);
+  const viewState = new ProgramState(0);
+  viewState.setLog(() => {});
+  viewState.setupProgram([viewDecls.map(m => m.code).join("\n")]);
+
+  const modelVarsArray = [];
+  const modelUsesArray = [];
+  for (const [id, modelNode] of modelState.nodes) {
+    if (!/^_?[0-9]/.exec(id)) {
+      modelVarsArray.push(id);
+    }
+    for (const input of modelNode.inputs) {
+      if (!/^_?[0-9]/.exec(input)) {
+        modelUsesArray.push(input);
+      }
+    }
+  }
+
+  const viewVarsArray = [];
+  const viewUsesArray = [];
+  for (const [id, viewNode] of viewState.nodes) {
+    if (!/^_?[0-9]/.exec(id)) {
+      viewVarsArray.push(id);
+    }
+    for (const input of viewNode.inputs) {
+      if (!/^_?[0-9]/.exec(input)) {
+        viewUsesArray.push(input);
+      }
+    }
+  }
+
+  const viewToModel = new Set(viewVarsArray).intersection(new Set(modelUsesArray));
+  const modelToView = new Set(modelVarsArray).intersection(new Set(viewUsesArray));
+
+  return {modelDecls, viewDecls, viewToModel, modelToView};
 }
 
 function strs(decls) {
@@ -27,7 +64,7 @@ function strs(decls) {
   for (const viewDecl of viewDecls) {
     if (Array.isArray(viewDecl.decls)) {
       for (const d of viewDecl.decls) {
-        viewEvents.push(`const ${d} = Events.receiver({queued: true});`);
+        viewEvents.push(`const ${d} = Events.receiver();`);
       }
     }
   }
@@ -36,20 +73,16 @@ function strs(decls) {
   for (const modelDecl of modelDecls) {
     if (Array.isArray(modelDecl.decls)) {
       for (const d of modelDecl.decls) {
-        modelEvents.push(`const ${d} = Events.receiver();`);
+        modelEvents.push(`const ${d} = Behaviors.receiver();`);
       }
     }
   }
 
-  const replace = (str) => {
-    return str.replaceAll("\\", "\\\\").replaceAll("`", "\\`").replaceAll("$", "\\$");
-  };
+  const modelNodeStr = modelDecls.map(m => m.code).join("\n");
+  const viewEventsStr = viewEvents.join("\n");
 
-  const modelNodeStr = replace(modelDecls.map(m => m.code).join("\n"));
-  const viewEventsStr = replace(viewEvents.join("\n"));
-
-  const viewNodeStr = replace(viewDecls.map(m => m.code).join("\n"));
-  const modelEventsStr = replace(modelEvents.join("\n"));
+  const viewNodeStr = viewDecls.map(m => m.code).join("\n");
+  const modelEventsStr = modelEvents.join("\n");
 
   return {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr};
 }
@@ -65,8 +98,12 @@ class ${modelName} extends Croquet.Model {
   init(_options, persistent) {
     super.init(_options, persistent);
 
+    this.$lastPublishTime = this.now();
+
     this.funcStr = funcStr;
     const nodes = decls(funcStr, realm);
+    this.viewToModel = nodes.viewToModel;
+    this.modelToView = nodes.modelToView;
     const {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr} = strs(nodes);
 
     this.programState = new ProgramState(0);
@@ -78,12 +115,20 @@ class ${modelName} extends Croquet.Model {
   }
 
   viewMessage(data) {
-console.log("receive", data)
+    const now = this.now();
+    if (this.$lastPublishTime !== now) {
+      this.$changedKeys = new Set();
+      this.$lastPublishTime = now;
+    }
+
     const {name, value} = data;
+
     if (name === undefined || value === undefined) {return;}
     this.programState.registerEvent(name, value);
-    this.programState.evaluate(this.now());
-    this.publish(this.id, "modelUpdate", ["a"]);
+    let changedKeys = this.programState.evaluate(now);
+    changedKeys = changedKeys.union(this.modelToView);
+    this.$changedKeys = this.$changedKeys.union(changedKeys);
+    this.publish(this.id, "modelUpdate", this.$changedKeys);
   }
 
   static types() {
@@ -123,17 +168,29 @@ class ${viewName} extends Croquet.View {
     const {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr} = strs(nodes);
     this.programState = new ProgramState(0, this);
     this.programState.setupProgram([viewNodeStr, modelEventsStr]);
+    this.programState.announcer = (varName, value) => this.announcer(varName, value);
     this.programState.evaluate(this.now());
-    this.subscribe(this.model.id, "modelUpdate", this.modelUpdate);
+
+    this.initViewState();
+    this.subscribe(this.model.id, {event: "modelUpdate", handling: "oncePerFrame"}, this.modelUpdate);
+  }
+
+  initViewState() {
+    this.modelUpdate(this.model.modelToView);
   }
 
   modelUpdate(keys) {
-    console.log("view receive", keys);
     for (const key of keys) {
       const value = this.model.programState.resolved.get(key);
       if (value && value.value !== undefined) {
         this.programState.registerEvent(key, value.value);
       }
+    }
+  }
+
+  announcer(varName, value) {
+    if (this.model.viewToModel.has(varName)) {
+      this.publish(this.model.id, "viewMessage", {name: varName, value: value});
     }
   }
 }`.trim();
