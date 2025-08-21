@@ -1,0 +1,83 @@
+croquette-renkon
+
+
+Croquet model in a component:
+
+receives values -> output values
+
+
+class RenkonModel {
+  init() {
+    this.component = Renkon.modelComponent(Constants.componeent, _types: {...});
+    this.subscribe(this.id, "view", this.viewMessage);
+  }
+
+  viewMessage(data) {
+     const {name, value} = data;
+     if (name === undefined || value === undefined) {return;}
+     this.programState.registerEvent(name, value);
+  }
+
+Model:
+const componentUpdate = aComponent({x, y});
+
+this.values = componentUpdate.values;
+this.publish(this.id, "update", componentUpdate.keys);
+
+
+
+View:
+this.subscribe(this.model.id, "update", this.componentUpdate);
+
+componentUpdate(keys) {
+   this.component = aComponent({model, view, {...model[keys]}}}
+}
+
+const publishEvents = {a: true, b: true, evt: true};
+
+const evt = Events.listener(a, "click", (evt) => evt);
+
+ => 
+view.publish(model.id, "view", {name: "evt", value});
+
+function counter({}, _realm = {a: "Model"}) {
+  const a = Behaviors.collect(0, incr, (prev, _incr) => prev + 1);
+
+  const incr = Events.listener(incr, click, (evt) => 1);
+
+  const dom = h("div", {}, a);
+  render(dom, document.body);
+}
+
+const {view, model} = croquet(counter, "MyRenkon");
+
+class MyRenkonModel extends Model {
+  init() {
+    this.programState = new ProgramState(0);
+    this.programState.setupProgram(["const a = ..", const evt = Events.receiver({queued: true})));
+    this.subscribe(this.id, "viewMessage", this.viewMessage);
+  }
+
+  viewMessage(data) {
+     const {name, value} = data;
+     if (name === undefined || value === undefined) {return;}
+     this.programState.registerEvent(name, value);
+  }
+}
+
+  
+class MyRenkonModel extends Model {
+  init() {
+    this.programState = new ProgramState(0);
+    this.programState.setupProgram(["const a = ..", const evt = Events.receiver({queued: true})));
+    this.subscribe(this.id, "viewMessage", this.viewMessage);
+  }
+
+  viewMessage(data) {
+     const {name, value} = data;
+     if (name === undefined || value === undefined) {return;}
+     this.programState.registerEvent(name, value);
+  }
+}
+
+  
