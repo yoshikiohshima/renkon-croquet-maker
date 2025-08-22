@@ -6,18 +6,17 @@ import {ProgramState} from "./renkon-core.js";
 // can we figure out the events that the model part needs by looking at
 
 
-function decls(funcStr, realm) {
+function decls(funcStr) {
   const state = new ProgramState(0);
 
-  const {output} = state.getFunctionBody(funcStr);
+  const {output, rawTypes:realm} = state.getFunctionBody(funcStr);
   state.setupProgram([output]);
 
   const decls = state.findDecls(output);
-  const check = (d) => d.decls.length > 0 && realm[d.decls[0]] === "Model";
+  const check = (d) => d.decls.length > 0 && realm.get(d.decls[0]) === "Model";
 
   const modelDecls = decls.filter((decl) => check(decl));
   const viewDecls = decls.filter((decl) => !check(decl));
-
   const modelState = new ProgramState(0);
   modelState.setLog(() => {});
   modelState.setupProgram([modelDecls.map(m => m.code).join("\n")]);
@@ -54,7 +53,7 @@ function decls(funcStr, realm) {
   const viewToModel = new Set(viewVarsArray).intersection(new Set(modelUsesArray));
   const modelToView = new Set(modelVarsArray).intersection(new Set(viewUsesArray));
 
-  return {modelDecls, viewDecls, viewToModel, modelToView};
+  return {modelDecls, viewDecls, viewToModel, modelToView, realm};
 }
 
 function strs(decls) {
@@ -88,7 +87,7 @@ function strs(decls) {
 }
 
 
-export function croquetify(func, appName, realm) {
+export function croquetify(func, appName) {
   const funcStr = typeof func === "function" ? func.toString() : func;
   const modelName = appName + "Model";
   const viewName = appName + "View";
@@ -101,7 +100,8 @@ class ${modelName} extends Croquet.Model {
     this.$lastPublishTime = this.now();
 
     this.funcStr = funcStr;
-    const nodes = decls(funcStr, realm);
+    const nodes = decls(funcStr);
+    const realm = nodes.realm;
     this.viewToModel = nodes.viewToModel;
     this.modelToView = nodes.modelToView;
     const {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr} = strs(nodes);
@@ -164,7 +164,7 @@ class ${viewName} extends Croquet.View {
     super(model);
     this.model = model;
 
-    const nodes = decls(model.funcStr, realm);
+    const nodes = decls(model.funcStr);
     const {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr} = strs(nodes);
     this.programState = new ProgramState(0, this);
     this.programState.setupProgram([viewNodeStr, modelEventsStr]);
@@ -196,9 +196,9 @@ class ${viewName} extends Croquet.View {
 }`.trim();
 
   const result = new Function(
-    "funcStr", "realm", "ProgramState", "Croquet", "decls", "strs",
+    "funcStr", "ProgramState", "Croquet", "decls", "strs",
     `return {model: ${modelStr}, view: ${viewStr}}`
-  )(funcStr, realm, ProgramState, Croquet, decls, strs);
+  )(funcStr, ProgramState, Croquet, decls, strs);
 
   result.model.register(modelName);
   return result;

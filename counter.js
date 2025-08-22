@@ -1,6 +1,5 @@
 export function counter({}, realm = {a: "Model", change: "Model"}) {
-  const timer = Events.timer(1000);
-  const change = Events.or(incr, decr, timer);
+  const change = Events.or(incr, decr);
   const a = Behaviors.collect(0, change, (prev, change) => prev + change);
 
   const {html, render} = import("./preact.standalone.module.js");

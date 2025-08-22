@@ -9271,14 +9271,22 @@ function getFunctionBody(input) {
   const compiled = parseJavaScript(input, 0, true);
   const node = compiled[0].body.body[0];
   const params = getParams(node);
-  const types2 = getTypes(node);
+  const rawTypes = getTypes(node);
+  let types2 = null;
+  if (rawTypes !== null) {
+    types2 = new Map(
+      [...rawTypes].map(
+        (pair) => [pair[0], pair[1].startsWith("Event") ? "Event" : "Behavior"]
+      )
+    );
+  }
   const body = node.body.body;
   const last = body[body.length - 1];
   const returnValues = getReturn(last);
   const output = new Sourcemap(input).trim();
   output.delete(0, body[0].start);
   output.delete(last.start, input.length);
-  return { params, types: types2, returnValues, output: String(output) };
+  return { params, types: types2, rawTypes, returnValues, output: String(output) };
 }
 function getParams(node) {
   if (node.params.length === 0) {
@@ -9339,7 +9347,7 @@ function getTypes(node) {
     if (typeof prop.value.value !== "string") {
       continue;
     }
-    types2.set(prop.key.name, prop.value.value.startsWith("Event") ? "Event" : "Behavior");
+    types2.set(prop.key.name, prop.value.value);
   }
   return types2;
 }
@@ -9441,7 +9449,7 @@ function rewriteRenkonCalls(output, body) {
     }
   });
 }
-const version$1 = "0.9.5";
+const version$1 = "0.9.6";
 const packageJson = {
   version: version$1
 };
