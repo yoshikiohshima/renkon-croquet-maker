@@ -9285,7 +9285,11 @@ function getFunctionBody(input) {
   const returnValues = getReturn(last);
   const output = new Sourcemap(input).trim();
   output.delete(0, body[0].start);
-  output.delete(last.start, input.length);
+  if (returnValues) {
+    output.delete(last.start, input.length);
+  } else {
+    output.delete(last.end, input.length);
+  }
   return { params, types: types2, rawTypes, returnValues, output: String(output) };
 }
 function getParams(node) {
@@ -9353,7 +9357,7 @@ function getTypes(node) {
 }
 function getReturn(returnNode) {
   if (returnNode.type !== "ReturnStatement") {
-    console.error("cannot convert");
+    console.log("function body does not end with a return statement.");
     return null;
   }
   const returnValue = returnNode.argument;
@@ -9365,15 +9369,15 @@ function getReturn(returnNode) {
     const result = {};
     for (const prop of returnValue.properties) {
       if (!prop) {
-        console.error("cannot convert");
+        console.error("the return statemenet can only return an object with nodes.");
         return null;
       }
       if (prop.type !== "Property") {
-        console.error("cannot convert");
+        console.error("the return statemenet can only return an object with nodes.");
         return null;
       }
       if (prop.key.type !== "Identifier" || prop.value.type !== "Identifier") {
-        console.error("cannot convert");
+        console.error("the return statemenet can only return an object with nodes.");
         return null;
       }
       result[prop.key.name] = prop.value.name;
@@ -9615,7 +9619,9 @@ class TimerEvent extends Stream {
     __publicField(this, "interval");
     this.interval = interval;
   }
-  created(_state, _id) {
+  created(state, id) {
+    var _a2;
+    (_a2 = state.app) == null ? void 0 : _a2.scheduleTimer(id, this);
     return this;
   }
   ready(node, state) {

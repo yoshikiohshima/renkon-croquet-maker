@@ -9,6 +9,6 @@ Croquet.Session.join({
   model: model,
   view: view,
   box: "http://localhost:8888",
-  tps: 0,
+  tps: 2,
 });
 

@@ -98,6 +98,7 @@ class ${modelName} extends Croquet.Model {
     super.init(_options, persistent);
 
     this.$lastPublishTime = this.now();
+    this.$changedKeys = new Set();
 
     this.funcStr = funcStr;
     const nodes = decls(funcStr);
@@ -106,25 +107,65 @@ class ${modelName} extends Croquet.Model {
     this.modelToView = nodes.modelToView;
     const {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr} = strs(nodes);
 
-    this.programState = new ProgramState(0);
+    this.timerNames = new Set();
+    this.programState = new ProgramState(0, this);
     this.programState.setupProgram([modelNodeStr, viewEventsStr]);
     this.programState.options = {once: true};
     this.programState.evaluate(this.now());
 
+    this.initCallFuture();
+
     this.subscribe(this.id, "viewMessage", this.viewMessage);
+  }
+
+  scheduleTimer(timerId, timerEvent) {
+    //console.log("scheduleTimer");
+    if (this.timerNames.has(timerId)) {return;}
+    this.timerNames.add(timerId);
+  }
+
+  initCallFuture() {
+    [...this.timerNames].forEach(timerId => {
+      const timer = this.programState.streams.get(timerId);
+      if (timer) {
+        this.invokeTimer(timer.interval);
+      }
+    });
+    this.timerNames = new Set();
+  }
+
+  invokeTimer(interval) {
+    this.future(interval).invokeTimer(interval);
+    this.timer();
   }
 
   viewMessage(data) {
     const now = this.now();
-    if (this.$lastPublishTime !== now) {
-      this.$changedKeys = new Set();
-      this.$lastPublishTime = now;
-    }
-
     const {name, value} = data;
 
     if (name === undefined || value === undefined) {return;}
     this.programState.registerEvent(name, value);
+
+    this.run(now);
+  }
+
+  timer() {
+    // console.log("timer", this.now());
+
+    const now = this.now();
+    this.run(now);
+  }
+
+  run(now) {
+    if (this.$lastPublishTime !== now) {
+      this.$changedKeys = new Set();
+      this.$lastPublishTime = now;
+    }
+    if (!this.programState.app) {
+      console.log("reinstate app");
+      this.programState.app = this;
+    }
+
     let changedKeys = this.programState.evaluate(now);
     changedKeys = changedKeys.union(this.modelToView);
     this.$changedKeys = this.$changedKeys.union(changedKeys);
