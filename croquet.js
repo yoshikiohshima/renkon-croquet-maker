@@ -125,13 +125,12 @@ class ${modelName} extends Croquet.Model {
   }
 
   initCallFuture() {
-    [...this.timerNames].forEach(timerId => {
-      const timer = this.programState.streams.get(timerId);
-      if (timer) {
-        this.invokeTimer(timer.interval);
+    [...this.programState.streams].forEach(([id, stream]) => {
+      if (stream.constructor.name === "TimerEvent") {
+        this.timerNames.add(id);
+        this.invokeTimer(stream.interval);
       }
     });
-    this.timerNames = new Set();
   }
 
   invokeTimer(interval) {
