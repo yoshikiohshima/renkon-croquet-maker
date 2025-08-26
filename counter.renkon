@@ -1,0 +1,330 @@
+{"padTitle":"Croquet",
+"positions":{"map":{"__map":true,
+"values":[["0",{"height":4568.657488822011,
+"id":"0",
+"type":"resize",
+"width":810.2423927975294,
+"x":45,
+"y":50}],["1",{"height":301.66420974360324,
+"id":"1",
+"type":"move",
+"width":767.2068268705436,
+"x":1204.9777266689164,
+"y":53.850449532690504}],["2",{"height":376.43167615702043,
+"id":"2",
+"type":"move",
+"width":657.8702591635886,
+"x":1205.9733850593677,
+"y":395.2162751228194}],["3",{"height":291.42624649439125,
+"id":"3",
+"type":"resize",
+"width":604.0413281278192,
+"x":1208.6164867843902,
+"y":842.4701729931571}]]}},
+"titles":{"map":{"__map":true,
+"values":[["0",{"id":"0",
+"state":false,
+"title":"untitled"}],["1",{"id":"1",
+"state":false,
+"title":"App"}],["2",{"id":"2",
+"state":false,
+"title":"Initialization"}],["3",{"id":"3",
+"state":false,
+"title":"Session"}]]}},
+"version":3,
+"windowEnabled":{"map":{"__map":true,
+"values":[["0",{"enabled":true,
+"id":"0"}],["1",{"enabled":true,
+"id":"1"}],["2",{"enabled":true,
+"id":"2"}],["3",{"enabled":true,
+"id":"3"}]]}},
+"windowTypes":{"map":{"__map":true,
+"values":[["0","code"],["1","code"],["2","code"],["3","code"]]}},
+"windows":["0","1","2","3"],
+"zIndex":{"map":{"__map":true,
+"values":[["0",100],["1",101],["2",102],["3",103]]}}}
+{__codeMap: true, value: [[`0`, `const {ProgramState} = import("./renkon-web.js");
+
+function decls(funcStr) {
+  const state = new ProgramState(0);
+
+  const {output, rawTypes:realm} = state.getFunctionBody(funcStr);
+  state.setupProgram([output]);
+
+  const decls = state.findDecls(output);
+  const check = (d) => d.decls.length > 0 && realm.get(d.decls[0]) === "Model";
+
+  const modelDecls = decls.filter((decl) => check(decl));
+  const viewDecls = decls.filter((decl) => !check(decl));
+  const modelState = new ProgramState(0);
+  modelState.setLog(() => {});
+  modelState.setupProgram([modelDecls.map(m => m.code).join("\\n")]);
+  const viewState = new ProgramState(0);
+  viewState.setLog(() => {});
+  viewState.setupProgram([viewDecls.map(m => m.code).join("\\n")]);
+
+  const modelVarsArray = [];
+  const modelUsesArray = [];
+  for (const [id, modelNode] of modelState.nodes) {
+    if (!/^_?[0-9]/.exec(id)) {
+      modelVarsArray.push(id);
+    }
+    for (const input of modelNode.inputs) {
+      if (!/^_?[0-9]/.exec(input)) {
+        modelUsesArray.push(input);
+      }
+    }
+  }
+
+  const viewVarsArray = [];
+  const viewUsesArray = [];
+  for (const [id, viewNode] of viewState.nodes) {
+    if (!/^_?[0-9]/.exec(id)) {
+      viewVarsArray.push(id);
+    }
+    for (const input of viewNode.inputs) {
+      if (!/^_?[0-9]/.exec(input)) {
+        viewUsesArray.push(input);
+      }
+    }
+  }
+
+  const viewToModel = new Set(viewVarsArray).intersection(new Set(modelUsesArray));
+  const modelToView = new Set(modelVarsArray).intersection(new Set(viewUsesArray));
+
+  return {modelDecls, viewDecls, viewToModel, modelToView, realm};
+}
+
+function strs(decls) {
+  const {modelDecls, viewDecls} = decls;
+
+  const viewEvents = [];
+  for (const viewDecl of viewDecls) {
+    if (Array.isArray(viewDecl.decls)) {
+      for (const d of viewDecl.decls) {
+        viewEvents.push(\`const \${d} = Events.receiver();\`);
+      }
+    }
+  }
+
+  const modelEvents = [];
+  for (const modelDecl of modelDecls) {
+    if (Array.isArray(modelDecl.decls)) {
+      for (const d of modelDecl.decls) {
+        modelEvents.push(\`const \${d} = Behaviors.receiver();\`);
+      }
+    }
+  }
+
+  const modelNodeStr = modelDecls.map(m => m.code).join("\\n");
+  const viewEventsStr = viewEvents.join("\\n");
+
+  const viewNodeStr = viewDecls.map(m => m.code).join("\\n");
+  const modelEventsStr = modelEvents.join("\\n");
+
+  return {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr};
+}
+
+
+export function croquetify(func, appName, Croquet, ProgramState) {
+  const funcStr = typeof func === "function" ? func.toString() : func;
+  const modelName = appName + "Model";
+  const viewName = appName + "View";
+
+  const modelStr = \`
+class \${modelName} extends Croquet.Model {
+  init(_options, persistent) {
+    super.init(_options, persistent);
+
+    this.\$lastPublishTime = this.now();
+    this.\$changedKeys = new Set();
+
+    this.funcStr = funcStr;
+    const nodes = decls(funcStr);
+    const realm = nodes.realm;
+    this.viewToModel = nodes.viewToModel;
+    this.modelToView = nodes.modelToView;
+    const {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr} = strs(nodes);
+
+    this.timerNames = new Set();
+    this.programState = new ProgramState(0, this);
+    this.programState.setupProgram([modelNodeStr, viewEventsStr]);
+    this.programState.options = {once: true};
+    this.programState.evaluate(this.now());
+
+    this.initCallFuture();
+
+    this.subscribe(this.id, "viewMessage", this.viewMessage);
+  }
+
+  scheduleTimer(timerId, timerEvent) {
+    //console.log("scheduleTimer");
+    if (this.timerNames.has(timerId)) {return;}
+    this.timerNames.add(timerId);
+  }
+
+  initCallFuture() {
+    [...this.programState.streams].forEach(([id, stream]) => {
+      if (stream.constructor.name === "TimerEvent") {
+        this.timerNames.add(id);
+        this.invokeTimer(stream.interval);
+      }
+    });
+  }
+
+  invokeTimer(interval) {
+    this.future(interval).invokeTimer(interval);
+    this.timer();
+  }
+
+  viewMessage(data) {
+    const now = this.now();
+    const {name, value} = data;
+
+    if (name === undefined || value === undefined) {return;}
+    this.programState.registerEvent(name, value);
+
+    this.run(now);
+  }
+
+  timer() {
+    // console.log("timer", this.now());
+
+    const now = this.now();
+    this.run(now);
+  }
+
+  run(now) {
+    if (this.\$lastPublishTime !== now) {
+      this.\$changedKeys = new Set();
+      this.\$lastPublishTime = now;
+    }
+    if (!this.programState.app) {
+      console.log("reinstate app");
+      this.programState.app = this;
+    }
+
+    let changedKeys = this.programState.evaluate(now);
+    changedKeys = changedKeys.union(this.modelToView);
+    this.\$changedKeys = this.\$changedKeys.union(changedKeys);
+    this.publish(this.id, "modelUpdate", this.\$changedKeys);
+  }
+
+  static types() {
+    return {
+      ProgramState: {
+        cls: ProgramState,
+        write: (ps) => {
+          return {
+            scripts: ps.scripts,
+            resolved: ps.resolved,
+            scratch: ps.scratch,
+            time: ps.time
+          };
+        },
+        read: (obj) => {
+          let t = new ProgramState(0);
+          t.setupProgram(obj.scripts);
+          t.options = {once: true};
+          t.evaluate(obj.time);
+          t.resolved = obj.resolved;
+          t.scratch = obj.scratch;
+          return t;
+        }
+     },
+   }
+  }
+}
+\`.trim();
+
+  const viewStr = \`
+class \${viewName} extends Croquet.View {
+  constructor(model) {
+    super(model);
+    this.model = model;
+
+    const nodes = decls(model.funcStr);
+    const {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr} = strs(nodes);
+    this.programState = new ProgramState(0, this);
+    this.programState.setupProgram([viewNodeStr, modelEventsStr]);
+    this.programState.announcer = (varName, value) => this.announcer(varName, value);
+    this.programState.evaluate(this.now());
+
+    this.initViewState();
+    this.subscribe(this.model.id, {event: "modelUpdate", handling: "oncePerFrame"}, this.modelUpdate);
+  }
+
+  initViewState() {
+    this.modelUpdate(this.model.modelToView);
+  }
+
+  modelUpdate(keys) {
+    for (const key of keys) {
+      const value = this.model.programState.resolved.get(key);
+      if (value && value.value !== undefined) {
+        this.programState.registerEvent(key, value.value);
+      }
+    }
+  }
+
+  announcer(varName, value) {
+    if (this.model.viewToModel.has(varName)) {
+      this.publish(this.model.id, "viewMessage", {name: varName, value: value});
+    }
+  }
+}\`.trim();
+
+  const result = new Function(
+    "funcStr", "ProgramState", "Croquet", "decls", "strs",
+    \`return {model: \${modelStr}, view: \${viewStr}}\`
+  )(funcStr, ProgramState, Croquet, decls, strs);
+
+  result.model.register(modelName);
+  return result;
+}
+`],
+[`1`, `function counter({}, realm = {a: "Model", change: "Model", timer: "Model", thousand: "Model"}) {
+  const change = Events.or(incr, decr, thousand);
+  const a = Behaviors.collect(0, change, (prev, change) => prev + change);
+  const timer = Events.timer(1000);
+  const thousand = timer ? 1000 : undefined;
+
+  const {html, render} = import("./preact.standalone.module.js");
+  const incr = Events.listener(document.body.querySelector("#incr"), "click", (evt) => 1);
+  const decr = Events.listener(document.body.querySelector("#decr"), "click", (evt) => -1);
+  render(html\`<div>\${a}</div>\`, document.body.querySelector("#count"));
+
+  return {};
+}
+`],
+[`2`, `const Croquet = (() => {
+  const script = document.createElement("script");
+  script.src = "https://cdn.jsdelivr.net/npm/@croquet/croquet@2.0.4/pub/croquet.min.js";
+  const bodyDiv = document.createElement("div");
+  bodyDiv.id = "bodyDiv";
+  bodyDiv.innerHTML = \`
+<button id="incr">+</button>
+<button id="decr">-</button>
+<div id="count"></div>\`.trim();
+
+  document.body.querySelector("#bodyDiv")?.remove();
+  document.body.appendChild(bodyDiv);
+  return new Promise((resolve) => {
+    document.head.appendChild(script);
+    script.onload = () => resolve(window.Croquet)
+  });
+})();`],
+[`3`, `const {model, view} = croquetify(counter, "MyApp", Croquet, ProgramState);
+
+Croquet.Session.join({
+  apiKey: "234567_Paste_Your_Own_API_Key_Here_7654321",
+  appId: 'org.tinlizzie.myapp',
+  model: model,
+  view: view,
+  box: "http://localhost:8888",
+  password: "1",
+  tps: 2,
+  name: "x",
+});
+
+`]]}
