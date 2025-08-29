@@ -5,20 +5,20 @@
 "type":"resize",
 "width":810.2423927975294,
 "x":45,
-"y":50}],["1",{"height":301.66420974360324,
+"y":50}],["1",{"height":268.8807209478965,
 "id":"1",
-"type":"move",
-"width":767.2068268705436,
+"type":"resize",
+"width":709.2217714852278,
 "x":1204.9777266689164,
 "y":53.850449532690504}],["2",{"height":376.43167615702043,
 "id":"2",
 "type":"move",
 "width":657.8702591635886,
 "x":1205.9733850593677,
-"y":395.2162751228194}],["3",{"height":291.42624649439125,
+"y":395.2162751228194}],["3",{"height":266.4680186242346,
 "id":"3",
 "type":"resize",
-"width":604.0413281278192,
+"width":564.348300429765,
 "x":1208.6164867843902,
 "y":842.4701729931571}]]}},
 "titles":{"map":{"__map":true,
@@ -283,16 +283,15 @@ class \${viewName} extends Croquet.View {
   return result;
 }
 `],
-[`1`, `function counter({}, realm = {a: "Model", change: "Model", timer: "Model", thousand: "Model"}) {
+[`1`, `function counter({}, realm = {count: "Model", change: "Model", timer: "Model", thousand: "Model"}) {
   const change = Events.or(incr, decr, thousand);
-  const a = Behaviors.collect(0, change, (prev, change) => prev + change);
+  const count = Behaviors.collect(0, change, (prev, change) => prev + change);
   const timer = Events.timer(1000);
   const thousand = timer ? 1000 : undefined;
 
-  const {html, render} = import("./preact.standalone.module.js");
   const incr = Events.listener(document.body.querySelector("#incr"), "click", (evt) => 1);
   const decr = Events.listener(document.body.querySelector("#decr"), "click", (evt) => -1);
-  render(html\`<div>\${a}</div>\`, document.body.querySelector("#count"));
+  document.body.querySelector("#count").textContent = count;
 
   return {};
 }
@@ -324,7 +323,7 @@ Croquet.Session.join({
   box: "http://localhost:8888",
   password: "1",
   tps: 2,
-  name: "x",
+  name: "x2",
 });
 
 `]]}
