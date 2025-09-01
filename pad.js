@@ -3,6 +3,7 @@ export function pad({}, _realm = {
   findMax: "Model", titles: "Model", windowEnabled: "Model",
   zIndex: "Model", initialData: "Model",
   newId: "Model", newWindowRequest: "Model",
+  padTitle: "Model"
 }) {
 // Initialization
 
