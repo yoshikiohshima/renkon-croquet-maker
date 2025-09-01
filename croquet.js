@@ -12,6 +12,8 @@ function decls(funcStr) {
   const {output, rawTypes:realm} = state.getFunctionBody(funcStr);
   state.setupProgram([output]);
 
+  const types = state.types;
+
   const decls = state.findDecls(output);
   const check = (d) => d.decls.length > 0 && realm.get(d.decls[0]) === "Model";
 
@@ -53,17 +55,18 @@ function decls(funcStr) {
   const viewToModel = new Set(viewVarsArray).intersection(new Set(modelUsesArray));
   const modelToView = new Set(modelVarsArray).intersection(new Set(viewUsesArray));
 
-  return {modelDecls, viewDecls, viewToModel, modelToView, realm};
+  return {modelDecls, viewDecls, viewToModel, modelToView, types, realm};
 }
 
 function strs(decls) {
-  const {modelDecls, viewDecls} = decls;
+  const {modelDecls, viewDecls, types} = decls;
 
   const viewEvents = [];
   for (const viewDecl of viewDecls) {
     if (Array.isArray(viewDecl.decls)) {
       for (const d of viewDecl.decls) {
-        viewEvents.push(`const ${d} = Events.receiver();`);
+        const type = types.get(d) === "Event" ? "Events" : "Behaviors";
+        viewEvents.push(`const ${d} = ${type}.receiver();`);
       }
     }
   }
@@ -72,7 +75,8 @@ function strs(decls) {
   for (const modelDecl of modelDecls) {
     if (Array.isArray(modelDecl.decls)) {
       for (const d of modelDecl.decls) {
-        modelEvents.push(`const ${d} = Behaviors.receiver();`);
+        const type = types.get(d) === "Event" ? "Events" : "Behaviors";
+        modelEvents.push(`const ${d} = ${type}.receiver();`);
       }
     }
   }
@@ -111,6 +115,7 @@ class ${modelName} extends Croquet.Model {
     this.programState = new ProgramState(0, this);
     this.programState.setupProgram([modelNodeStr, viewEventsStr]);
     this.programState.options = {once: true};
+    this.programState.debugModel = true;
     this.programState.evaluate(this.now());
 
     this.initCallFuture();
@@ -166,8 +171,9 @@ class ${modelName} extends Croquet.Model {
     }
 
     let changedKeys = this.programState.evaluate(now);
-    changedKeys = changedKeys.union(this.modelToView);
-    this.$changedKeys = this.$changedKeys.union(changedKeys);
+    changedKeys = this.$changedKeys.union(changedKeys);
+    this.$changedKeys = changedKeys.intersection(this.modelToView);
+console.log(this.$changedKeys);
     this.publish(this.id, "modelUpdate", this.$changedKeys);
   }
 
@@ -184,6 +190,7 @@ class ${modelName} extends Croquet.Model {
           };
         },
         read: (obj) => {
+          console.log("read");
           let t = new ProgramState(0);
           t.setupProgram(obj.scripts);
           t.options = {once: true};
