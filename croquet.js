@@ -6,10 +6,11 @@ import {ProgramState} from "./renkon-core.js";
 // can we figure out the events that the model part needs by looking at
 
 
-function decls(funcStr) {
+function decls(funcStr, realm) {
   const state = new ProgramState(0);
 
-  const {output, rawTypes:realm} = state.getFunctionBody(funcStr);
+  const {output} = state.getFunctionBody(funcStr);
+
   state.setupProgram([output]);
 
   const types = state.types;
@@ -91,7 +92,7 @@ function strs(decls) {
 }
 
 
-export function croquetify(func, appName) {
+export function croquetify(func, appName, realm) {
   const funcStr = typeof func === "function" ? func.toString() : func;
   const modelName = appName + "Model";
   const viewName = appName + "View";
@@ -105,8 +106,8 @@ class ${modelName} extends Croquet.Model {
     this.$changedKeys = new Set();
 
     this.funcStr = funcStr;
-    const nodes = decls(funcStr);
-    const realm = nodes.realm;
+    const nodes = decls(funcStr, realm);
+    this.realm = nodes.realm;
     this.viewToModel = nodes.viewToModel;
     this.modelToView = nodes.modelToView;
     const {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr} = strs(nodes);
@@ -173,7 +174,6 @@ class ${modelName} extends Croquet.Model {
     let changedKeys = this.programState.evaluate(now);
     changedKeys = this.$changedKeys.union(changedKeys);
     this.$changedKeys = changedKeys.intersection(this.modelToView);
-console.log(this.$changedKeys);
     this.publish(this.id, "modelUpdate", this.$changedKeys);
   }
 
@@ -211,7 +211,7 @@ class ${viewName} extends Croquet.View {
     super(model);
     this.model = model;
 
-    const nodes = decls(model.funcStr);
+    const nodes = decls(model.funcStr, this.model.realm);
     const {modelNodeStr, viewEventsStr, viewNodeStr, modelEventsStr} = strs(nodes);
     this.programState = new ProgramState(0, this);
     this.programState.setupProgram([viewNodeStr, modelEventsStr]);
@@ -243,9 +243,9 @@ class ${viewName} extends Croquet.View {
 }`.trim();
 
   const result = new Function(
-    "funcStr", "ProgramState", "Croquet", "decls", "strs",
+    "funcStr", "realm", "ProgramState", "Croquet", "decls", "strs",
     `return {model: ${modelStr}, view: ${viewStr}}`
-  )(funcStr, ProgramState, Croquet, decls, strs);
+  )(funcStr, realm, ProgramState, Croquet, decls, strs);
 
   result.model.register(modelName);
   return result;

@@ -1,10 +1,8 @@
-export function pad({}, _realm = {
-  windows: "Model", windowTypes: "Model", positions: "Model",
-  findMax: "Model", titles: "Model", windowEnabled: "Model",
-  zIndex: "Model", initialData: "Model",
-  newId: "Model", newWindowRequest: "Model",
-  padTitle: "Model"
-}) {
+export const realm = [
+  "windows", "windowTypes", "positions", "titles", "windowEnabled", "zIndex",
+  "initialData", "newId", "newWindowRequest", "padTitle"];
+
+export function pad({}) {
 // Initialization
 
 const {h, html, render} = import("./preact.standalone.module.js");
