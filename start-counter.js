@@ -1,7 +1,6 @@
 import {croquetify} from "./croquet.js";
 import {counter, realm} from "./counter.js";
 
-debugger;
 const {model, view} = croquetify(counter, "Counter", new Map(realm.model.map((key) => [key, "Model"])));
 
 Croquet.Session.join({

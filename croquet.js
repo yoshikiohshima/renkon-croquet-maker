@@ -60,26 +60,18 @@ function decls(funcStr, realm) {
 }
 
 function strs(decls) {
-  const {modelDecls, viewDecls, types} = decls;
+  const {modelDecls, viewDecls, types, modelToView, viewToModel} = decls;
 
   const viewEvents = [];
-  for (const viewDecl of viewDecls) {
-    if (Array.isArray(viewDecl.decls)) {
-      for (const d of viewDecl.decls) {
-        const type = types.get(d) === "Event" ? "Events" : "Behaviors";
-        viewEvents.push(`const ${d} = ${type}.receiver();`);
-      }
-    }
+  for (const viewDecl of viewToModel) {
+    const type = types.get(viewDecl) === "Event" ? "Events" : "Behaviors";
+    viewEvents.push(`const ${viewDecl} = ${type}.receiver();`);
   }
 
   const modelEvents = [];
-  for (const modelDecl of modelDecls) {
-    if (Array.isArray(modelDecl.decls)) {
-      for (const d of modelDecl.decls) {
-        const type = types.get(d) === "Event" ? "Events" : "Behaviors";
-        modelEvents.push(`const ${d} = ${type}.receiver();`);
-      }
-    }
+  for (const modelDecl of modelToView) {
+    const type = types.get(modelDecl) === "Event" ? "Events" : "Behaviors";
+    modelEvents.push(`const ${modelDecl} = ${type}.receiver();`);
   }
 
   const modelNodeStr = modelDecls.map(m => m.code).join("\n");
@@ -116,7 +108,6 @@ class ${modelName} extends Croquet.Model {
     this.programState = new ProgramState(0, this);
     this.programState.setupProgram([modelNodeStr, viewEventsStr]);
     this.programState.options = {once: true};
-    this.programState.debugModel = true;
     this.programState.evaluate(this.now());
 
     this.initCallFuture();
