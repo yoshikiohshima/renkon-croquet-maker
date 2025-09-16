@@ -116,7 +116,7 @@ class ${modelName} extends Croquet.Model {
   }
 
   scheduleTimer(timerId, timerEvent) {
-    //console.log("scheduleTimer");
+    console.log("scheduleTimer");
     if (this.timerNames.has(timerId)) {return;}
     this.timerNames.add(timerId);
   }
