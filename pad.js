@@ -1,6 +1,6 @@
-export const realm = [
+export const realm = {model: [
   "windows", "windowTypes", "positions", "titles", "windowEnabled", "zIndex",
-  "initialData", "newId", "newWindowRequest", "padTitle"];
+  "initialData", "newId", "newWindowRequest", "padTitle"]};
 
 export function pad({}) {
 // Initialization
