@@ -1,4 +1,4 @@
-import {ProgramState} from "./renkon-core.js";
+import {ProgramState} from "./renkon-web.js";
 
 //
 // oncePerFrame that accumlates the changes for this cycle.
@@ -84,7 +84,7 @@ function strs(decls) {
 }
 
 
-export function croquetify(func, appName, realm) {
+export function croquetify(func, appName, realm, Croquet) {
   const funcStr = typeof func === "function" ? func.toString() : func;
   const modelName = appName + "Model";
   const viewName = appName + "View";
@@ -252,3 +252,4 @@ return {}
 }
 
 /* globals Croquet */
+
