@@ -182,16 +182,16 @@ class ${modelName} extends Croquet.Model {
         },
         read: (obj) => {
           console.log("read");
-          let t = new ProgramState(0);
-          t.setupProgram(obj.scripts);
-          t.options = {once: true};
-          t.evaluate(obj.time);
-          t.resolved = obj.resolved;
-          t.scratch = obj.scratch;
-          return t;
+          let ps = new ProgramState(0);
+          ps.setupProgram(obj.scripts);
+          ps.options = {once: true};
+          ps.evaluate(obj.time);
+          ps.resolved = obj.resolved;
+          ps.scratch = obj.scratch;
+          return ps;
         }
-     },
-   }
+      }
+    }
   }
 }
 `.trim();
@@ -240,6 +240,15 @@ class ${viewName} extends Croquet.View {
 
   result.model.register(modelName);
   return result;
+}
+
+export function toFunction(code, name) {
+  return `
+function ${name}({}) {
+${code.join("\n")}
+
+return {}
+}`.trim();
 }
 
 /* globals Croquet */

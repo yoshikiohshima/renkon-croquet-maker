@@ -5,7 +5,7 @@ import {ProgramState, CodeMirror, newInspector} from "./renkon-web.js";
 window.CodeMirror = CodeMirror;
 window.newInspector = newInspector;
 
-const {model, view} = croquetify(pad, "Pad", new Map(realm.model.map((key) => [key, "Model"])));
+const {model, view} = croquetify(pad, "Pad", new Map(realm.model.map((key) => [key, "Model"])), Croquet);
 
 Croquet.Session.join({
   apiKey: "234567_Paste_Your_Own_API_Key_Here_7654321",
