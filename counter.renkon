@@ -27,18 +27,18 @@
 "windows":["0","1"],
 "zIndex":{"map":{"__map":true,
 "values":[["0",100],["1",101]]}}}
-{__codeMap: true, value: [[`0`, `{
+{__codeMap: true, value: [[`0`, `({
   "appParameters": {
     "apiKey": "234567_Paste_Your_Own_API_Key_Here_7654321",
     "appId": "org.tinlizzie.counter",
-    "name": "abc",
+    "name": "abcd",
     "password": "123",
     "box": "http://localhost:8888",
     "tps": 2
   },
   "realm": {"model": ["counter", "change", "timer", "thousand"]},
   "name": "counter"
-}`],
+})`],
 [`1`, `const change = Events.or(incr, decr, thousand);
 const counter = Behaviors.collect(0, change, (prev, change) => prev + change);
 const timer = Events.timer(1000);

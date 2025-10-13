@@ -115,10 +115,10 @@
 "type":"resize",
 "width":836.3174865618945,
 "x":-1597.3585193814326,
-"y":3905.0132249604476}],["159",{"height":1847.7410914493348,
+"y":3905.0132249604476}],["159",{"height":1981.4048555285729,
 "id":"159",
 "type":"resize",
-"width":813.8276363761645,
+"width":806.1345020299934,
 "x":-3393.8754826497357,
 "y":1266.1864188829784}],["160",{"height":482.98527760265216,
 "id":"160",
@@ -3087,9 +3087,16 @@ class DependencyPlugin {
       window.CodeMirror = CodeMirror;
       window.newInspector = newInspector;
 
+      function trimParenthesis(str) {
+        let match = /^\\\\(+([^()]+)\\\\)+\$/m.exec(str);
+        if (!match) return str;
+        return match[1];
+      }
+
       window.onmessage = (evt) => {
         if (evt.data && Array.isArray(evt.data.code) && evt.data.croquet) {
-          const {name, realm, appParameters} = JSON.parse(evt.data.croquet);
+          let trimmed = trimParenthesis(evt.data.croquet)
+          const {name, realm, appParameters} = JSON.parse(trimmed);
           const {model, view} = croquetify(
             toFunction(evt.data.code, name),
             name,
