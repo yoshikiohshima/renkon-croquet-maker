@@ -1797,6 +1797,7 @@ const titleChange = Events.observe((notify) => {
 const _padTitleUpdater = ((padTitle) => {
   if (renkon.querySelector("#padTitle").value !== padTitle) {
     renkon.querySelector("#padTitle").value = padTitle;
+    document.title = "Croquet: " + padTitle;
   }
 })(padTitle);
 

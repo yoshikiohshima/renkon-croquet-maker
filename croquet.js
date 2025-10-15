@@ -1,4 +1,4 @@
-import {ProgramState} from "./renkon-web.js";
+import {ProgramState} from "./renkon-core.js";
 
 //
 // oncePerFrame that accumlates the changes for this cycle.
@@ -84,7 +84,7 @@ function strs(decls) {
 }
 
 
-export function croquetify(func, appName, realm, Croquet) {
+export function croquetify(func, appName, realm) {
   const funcStr = typeof func === "function" ? func.toString() : func;
   const modelName = appName + "Model";
   const viewName = appName + "View";
@@ -113,6 +113,8 @@ class ${modelName} extends Croquet.Model {
     this.initCallFuture();
 
     this.subscribe(this.id, "viewMessage", this.viewMessage);
+    this.subscribe(this.sessionId, "view-join", this.viewJoin);
+    this.subscribe(this.sessionId, "view-exit", this.viewExit);
   }
 
   scheduleTimer(timerId, timerEvent) {
@@ -152,13 +154,27 @@ class ${modelName} extends Croquet.Model {
     this.run(now);
   }
 
+  viewJoin(viewId) {
+    this.programState.registerEvent("viewJoin", viewId);
+    const now = this.now();
+    this.run(now);
+  }
+
+  viewExit(viewId) {
+    this.programState.registerEvent("viewExit", viewId);
+    const now = this.now();
+    this.run(now);
+  }
+
   run(now) {
     if (this.$lastPublishTime !== now) {
       this.$changedKeys = new Set();
       this.$lastPublishTime = now;
     }
+
+    window.modelNetwork = this.programState;
     if (!this.programState.app) {
-      console.log("reinstate app");
+      // console.log("reinstate app");
       this.programState.app = this;
     }
 
@@ -181,7 +197,7 @@ class ${modelName} extends Croquet.Model {
           };
         },
         read: (obj) => {
-          console.log("read");
+          // console.log("read");
           let ps = new ProgramState(0);
           ps.setupProgram(obj.scripts);
           ps.options = {once: true};
@@ -207,6 +223,7 @@ class ${viewName} extends Croquet.View {
     this.programState = new ProgramState(0, this);
     this.programState.setupProgram([viewNodeStr, modelEventsStr]);
     this.programState.announcer = (varName, value) => this.announcer(varName, value);
+    window.viewNetwork = this.programState;
     this.programState.evaluate(this.now());
 
     this.initViewState();
@@ -252,4 +269,3 @@ return {}
 }
 
 /* globals Croquet */
-
