@@ -9,8 +9,8 @@
 "id":"2",
 "type":"move",
 "width":871.7915472338467,
-"x":-4231.007903111283,
-"y":239.51956212386767}],["4",{"height":8172.458544362332,
+"x":-5164.832020292665,
+"y":113.30799052853577}],["4",{"height":8172.458544362332,
 "id":"4",
 "type":"move",
 "width":1614.5564430990082,
@@ -25,12 +25,12 @@
 "type":"resize",
 "width":320.02348382430154,
 "x":-5650.99364079922,
-"y":-449.6284785315489}],["14",{"height":2641.8048702015262,
+"y":-449.6284785315489}],["14",{"height":2958.083961462451,
 "id":"14",
-"type":"resize",
-"width":892.6641887507747,
-"x":-5295.373438891963,
-"y":309.9849639254529}],["16",{"height":2915.9198423892362,
+"type":"move",
+"width":837.9109588736378,
+"x":-4123.330508161269,
+"y":116.90867745550928}],["16",{"height":2915.9198423892362,
 "id":"16",
 "type":"move",
 "width":763.0884327402407,
@@ -74,24 +74,14 @@
 "id":"29",
 "type":"move",
 "width":818.0175902029348,
-"x":-4228.65862627861,
-"y":1493.0163215929647}],["53",{"height":88.29305189707745,
-"id":"53",
-"type":"resize",
-"width":389.45936790061324,
-"x":-4856.119155990616,
-"y":2998.14968565993}],["81",{"height":674.8278106044174,
-"id":"81",
-"type":"move",
-"width":587.8337211320459,
-"x":-2504.976247545186,
-"y":4126.304532752074}]]}},
+"x":-5191.439764160982,
+"y":1337.5293258924787}]]}},
 "titles":{"map":{"__map":true,
 "values":[["0",{"id":"0",
 "state":false,
 "title":"Data Structure"}],["2",{"id":"2",
 "state":false,
-"title":"untitled"}],["4",{"id":"4",
+"title":"Initialization"}],["4",{"id":"4",
 "state":false,
 "title":"CSS"}],["8",{"id":"8",
 "state":false,
@@ -117,11 +107,7 @@
 "state":false,
 "title":"User Interaction"}],["29",{"id":"29",
 "state":false,
-"title":"Runner"}],["53",{"id":"53",
-"state":false,
-"title":"untitled"}],["81",{"id":"81",
-"state":false,
-"title":"untitled"}]]}},
+"title":"Runner"}]]}},
 "version":3,
 "windowEnabled":{"map":{"__map":true,
 "values":[["0",{"enabled":true,
@@ -139,15 +125,16 @@
 "id":"26"}],["27",{"enabled":true,
 "id":"27"}],["28",{"enabled":true,
 "id":"28"}],["29",{"enabled":true,
-"id":"29"}],["53",{"enabled":true,
-"id":"53"}],["81",{"enabled":true,
-"id":"81"}]]}},
+"id":"29"}]]}},
 "windowTypes":{"map":{"__map":true,
-"values":[["0","code"],["2","code"],["4","code"],["8","code"],["10","code"],["14","code"],["16","code"],["18","code"],["23","code"],["24","code"],["25","code"],["26","code"],["27","code"],["28","code"],["29","code"],["53","code"],["81","code"]]}},
-"windows":["0","2","4","8","10","14","16","18","23","24","25","26","27","28","29","53","81"],
+"values":[["0","code"],["2","code"],["4","code"],["8","code"],["10","code"],["14","code"],["16","code"],["18","code"],["23","code"],["24","code"],["25","code"],["26","code"],["27","code"],["28","code"],["29","code"]]}},
+"windows":["0","2","4","8","10","14","16","18","23","24","25","26","27","28","29"],
 "zIndex":{"map":{"__map":true,
-"values":[["0",102],["2",115],["4",103],["8",106],["10",117],["14",116],["16",108],["18",100],["23",110],["24",111],["25",107],["26",105],["27",109],["28",114],["29",112],["53",113],["81",118]]}}}
-{__codeMap: true, value: [[`0`, `const loadDone = Events.receiver();
+"values":[["0",102],["2",115],["4",103],["8",106],["10",113],["14",112],["16",108],["18",100],["23",110],["24",111],["25",107],["26",105],["27",109],["28",114],["29",116]]}}}
+{__codeMap: true, value: [[`0`, `const viewExit = Events.receiver({queued: true});
+const viewJoin = Events.receiver({queued: true});
+
+const loadDone = Events.receiver();
 const newWindowRequest = {...newWindowRequestFromView, id: \`\${newId}\`};
 const xxx = console.log(newWindowRequest);
 
@@ -1198,7 +1185,35 @@ const pinnedPositions = Behaviors.select(
     return {map: new Map()}
   }
 )
-`],
+
+const windowContents = Behaviors.select(
+  {map: new Map()},
+  windowContentsModel, (prev, windowContentsModel) => {
+    const prevKeys = [...prev.map.keys()];
+    const newKeys = [...windowContentsModel.map.keys()];
+    const olds = prevKeys.filter((e) => !newKeys.includes(e));
+    const news = newKeys.filter((e) => !prevKeys.includes(e));
+    olds.forEach((id) => prev.map.delete(\`\${id}\`));
+    news.forEach((id) => {
+      const {type, doc} = windowContentsModel.map.get(id);
+      let elem;
+      if (type === "runner") {
+        elem = newRunner(id);
+      } else if (type === "doc") {
+        elem = newDocPane(id, doc);
+      } else {
+        elem = newEditor(id, doc);
+      }
+      prev.map.set(id, elem);
+    });
+    return {map: prev.map};
+  },
+  resetRequest, (prev, resetRequest) => {
+    const id = resetRequest.id;
+    prev.map.set(id, newRunner(id));
+    return {map: prev.map};
+  }
+);`],
 [`16`, `function hoverTooltip(source, options = {}) {
   let setHover = window.CodeMirror.state.StateEffect.define();
   let hoverState = window.CodeMirror.state.StateField.define({
@@ -3013,35 +3028,4 @@ const _goTo = ((padView, positions, dblClick, viewId) => {
   runnerIframe.id = \`runner-\${id}\`;
   return {dom: runnerIframe};
 };
-`],
-[`53`, `const viewExit = Events.receiver({queued: true});
-const viewJoin = Events.receiver({queued: true});
-`],
-[`81`, `const windowContents = Behaviors.select(
-  {map: new Map()},
-  windowContentsModel, (prev, windowContentsModel) => {
-    const prevKeys = [...prev.map.keys()];
-    const newKeys = [...windowContentsModel.map.keys()];
-    const olds = prevKeys.filter((e) => !newKeys.includes(e));
-    const news = newKeys.filter((e) => !prevKeys.includes(e));
-    olds.forEach((id) => prev.map.delete(\`\${id}\`));
-    news.forEach((id) => {
-      const {type, doc} = windowContentsModel.map.get(id);
-      let elem;
-      if (type === "runner") {
-        elem = newRunner(id);
-      } else if (type === "doc") {
-        elem = newDocPane(id, doc);
-      } else {
-        elem = newEditor(id, doc);
-      }
-      prev.map.set(id, elem);
-    });
-    return {map: prev.map};
-  },
-  resetRequest, (prev, resetRequest) => {
-    const id = resetRequest.id;
-    prev.map.set(id, newRunner(id));
-    return {map: prev.map};
-  }
-);`]]}
+`]]}
