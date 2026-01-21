@@ -2,10 +2,10 @@
 "positions":{"map":{"__map":true,
 "values":[["0",{"height":5395.935569674719,
 "id":"0",
-"type":"resize",
+"type":"move",
 "width":846.9226824922912,
-"x":-1874.4644157380214,
-"y":114.62152857671515}],["2",{"height":1384.996947232564,
+"x":-1994.6119994708824,
+"y":113.33952701637786}],["2",{"height":1384.996947232564,
 "id":"2",
 "type":"resize",
 "width":898.7536951612279,
@@ -35,17 +35,17 @@
 "type":"move",
 "width":763.0884327402407,
 "x":-3120.586069181566,
-"y":3975.330750119018}],["18",{"height":4399.724965804616,
+"y":3975.330750119018}],["18",{"height":4371.5409627515755,
 "id":"18",
-"type":"move",
-"width":922.9187780638681,
+"type":"resize",
+"width":893.6731174686736,
 "x":-61.21986103933419,
 "y":4389.672574988393}],["24",{"height":2558.6994626918395,
 "id":"24",
 "type":"move",
 "width":739.2688656962409,
 "x":2203.8342248341337,
-"y":124.89928974372444}],["25",{"height":3098.423709219249,
+"y":124.89928974372444}],["25",{"height":3114.949510582972,
 "id":"25",
 "type":"resize",
 "width":770.7780016220119,
@@ -55,25 +55,25 @@
 "type":"resize",
 "width":851.32232821802,
 "x":1042.9492775570598,
-"y":126.29650565939713}],["27",{"height":4147.830893817172,
+"y":126.29650565939713}],["27",{"height":4131.124810984027,
 "id":"27",
 "type":"resize",
-"width":949.9557370066167,
+"width":864.5423830491443,
 "x":-56.689174552520825,
 "y":115.72276358168935}],["28",{"height":5066.90047537631,
 "id":"28",
-"type":"resize",
+"type":"move",
 "width":746.5529623442486,
-"x":-926.2159510292836,
+"x":-958.2259274889554,
 "y":108.24020115880211}],["29",{"height":2166.4833719799344,
 "id":"29",
 "type":"resize",
 "width":992.392383446219,
 "x":-5171.916960187742,
-"y":1742.1432070785786}],["88",{"height":1339.3514084153062,
+"y":1742.1432070785786}],["88",{"height":1384.1613692039707,
 "id":"88",
 "type":"resize",
-"width":790.4244479381388,
+"width":791.4460429315326,
 "x":2195.000919115392,
 "y":5922.326971846143}],["89",{"height":1436.4184955864093,
 "id":"89",
@@ -121,7 +121,7 @@
 "id":"0"}],["2",{"enabled":true,
 "id":"2"}],["4",{"enabled":true,
 "id":"4"}],["8",{"enabled":true,
-"id":"8"}],["10",{"enabled":false,
+"id":"8"}],["10",{"enabled":true,
 "id":"10"}],["14",{"enabled":true,
 "id":"14"}],["16",{"enabled":true,
 "id":"16"}],["18",{"enabled":true,
@@ -138,7 +138,7 @@
 "values":[["0","code"],["2","code"],["4","code"],["8","code"],["10","code"],["14","code"],["16","code"],["18","code"],["24","code"],["25","code"],["26","code"],["27","code"],["28","code"],["29","code"],["88","code"],["89","code"]]}},
 "windows":["0","2","4","8","10","14","16","18","24","25","26","27","28","29","88","89"],
 "zIndex":{"map":{"__map":true,
-"values":[["0",102],["2",115],["4",118],["8",106],["10",121],["14",112],["16",108],["18",113],["24",111],["25",107],["26",105],["27",109],["28",114],["29",120],["88",100],["89",103]]}}}
+"values":[["0",114],["2",115],["4",118],["8",106],["10",102],["14",112],["16",108],["18",113],["24",111],["25",107],["26",105],["27",109],["28",121],["29",120],["88",100],["89",103]]}}}
 {__codeMap: true, value: [[`0`, `const viewExit = Events.receiver({queued: true});
 const viewJoin = Events.receiver({queued: true});
 
@@ -1142,13 +1142,6 @@ const newEditor = (id, docModel) => {
 };
 `],
 [`10`, `({
-  "appParameters": {
-    "apiKey": "234567_Paste_Your_Own_API_Key_Here_7654321",
-    "appId": "org.tinlizzie.pad",
-    "name": "123abc",
-    "tps": 2,
-    "eventRateLimit": 60
-  },
   "realm": {"model": [
     "windows", "windowTypes", "positions", "titles", "windowEnabled",
     "zIndex", "windowContentsModel", "padTitle", "docSeparators", "initialData",
@@ -2798,7 +2791,7 @@ const _goTo = ((padView, positions, dblClick, viewId) => {
     <script type="module">
       import {ProgramState, globals} from "./renkon-core.js";
       import {newInspector} from "./renkon-inspector.js";
-      import {startWithCodeMirrorWithCroquet, startWithCodeMirrorNoCroquet, parse, extract, splitStrs, toFunction, trimParenthesis} from "./croquet.js";
+      import {startWithCodeMirrorWithCroquet, startWithCodeMirrorNoCroquet, parse, splitStrs, toFunction, trimParenthesis} from "./loader.js";
       window.RenkonWeb = {globals};
       let prevSession;
       let prevView;
