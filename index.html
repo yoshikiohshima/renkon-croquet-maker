@@ -3,16 +3,18 @@
     <head>
         <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
         <meta charset="utf-8">
-        <title>Croquet Maker</title>
+        <title>Renkon-pad</title>
         <script type="module">
             import {ProgramState, globals} from "./renkon-core.js";
             import {newInspector} from "./renkon-inspector.js";
             import {loader} from "./croquet.js";
 
+            const padOption = new URL(window.location).searchParams.get("pad");
+
             window.RenkonWeb = {globals};
             window.ProgramState = ProgramState;
             window.onload = () => {
-              loader().then((obj) => {
+              loader({codemirror: true, padName: padOption}).then((obj) => {
                 const {session, CodeMirrorModel, CodeMirrorView, CodeMirror} = obj;
                 window.CodeMirror = CodeMirror;
                 window.CodeMirrorModel = CodeMirrorModel;

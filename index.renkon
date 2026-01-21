@@ -10,25 +10,25 @@
 "type":"resize",
 "width":898.7536951612279,
 "x":-5178.229163998213,
-"y":113.30799052853577}],["4",{"height":8646.599624601682,
+"y":113.30799052853577}],["4",{"height":8937.581724868889,
 "id":"4",
 "type":"resize",
-"width":1862.4276500381839,
+"width":1633.1015245180788,
 "x":4300.2618591899545,
-"y":124.14309106010592}],["8",{"height":3713.836947558356,
+"y":124.14309106010592}],["8",{"height":3651.3217829841024,
 "id":"8",
 "type":"resize",
-"width":846.8519048295801,
+"width":839.1381290917664,
 "x":-3141.373850438804,
 "y":115.83863846374467}],["10",{"height":357.40107992762125,
 "id":"10",
 "type":"move",
 "width":616.0946360001138,
 "x":-5195.647383209227,
-"y":-333.59561064464594}],["14",{"height":2872.4448890458675,
+"y":-333.59561064464594}],["14",{"height":2970.7056226026934,
 "id":"14",
 "type":"resize",
-"width":831.8992401236378,
+"width":850.956368095214,
 "x":-4123.330508161269,
 "y":116.90867745550928}],["16",{"height":2915.9198423892362,
 "id":"16",
@@ -45,10 +45,10 @@
 "type":"move",
 "width":739.2688656962409,
 "x":2203.8342248341337,
-"y":124.89928974372444}],["25",{"height":3061.465179623042,
+"y":124.89928974372444}],["25",{"height":3098.423709219249,
 "id":"25",
 "type":"resize",
-"width":770.1127022065618,
+"width":770.7780016220119,
 "x":2198.6072570198103,
 "y":2753.3447050640784}],["26",{"height":4892.327415416062,
 "id":"26",
@@ -374,7 +374,7 @@ const windowContentsModel = Behaviors.select(
     let elem;
     if (type === "runner") {
       elem = {type};
-    } else if (type === "doc") {
+    } else if (type === "doc") {  
       elem = {type, doc: window.CodeMirrorModel.create({id, creator: "newDocPane", doc: \`# Hello\`})};
     } else if (type === "code") {
       elem = {type, doc: window.CodeMirrorModel.create({id, creator: "newEditor", doc: \`console.log("hello")\`})}
@@ -1145,8 +1145,7 @@ const newEditor = (id, docModel) => {
   "appParameters": {
     "apiKey": "234567_Paste_Your_Own_API_Key_Here_7654321",
     "appId": "org.tinlizzie.pad",
-    "name": "ejdkeme1",
-    "password": "1",
+    "name": "123abc",
     "tps": 2,
     "eventRateLimit": 60
   },
@@ -1163,6 +1162,7 @@ const newWindowRequestFromView = ((viewId, type, padViews) => {
 })(viewId, Events.or(addCode, addRunner, addDoc), padViews, padView);
 
 const viewId = Renkon.app?.viewId || "local";
+const isLocal = viewId === "local";
 
 const padView = Behaviors.select(
   {x: 0, y: 0, scale: 1},
@@ -1297,7 +1297,11 @@ const windowContents = Behaviors.select(
       if (type === "runner") {
         elem = newRunner(id);
       } else if (type === "doc") {
-        elem = newDocPane(id, doc);
+        if (isLocal) {
+          elem = doc;
+        } else {
+          elem = newDocPane(id, doc);
+        }
       } else {
         elem = newEditor(id, doc);
       }
@@ -1897,7 +1901,7 @@ const loader = (() => {
     }).then(async (data) => {
       const result = new TextDecoder("utf-8").decode(data);
       const array = new TextEncoder().encode(result);
-      if (!Renkon.app) {
+      if (isLocal) {
         Events.send(loadAtOnce, {key: 1, array: [array], done: true});
         return;
       }
@@ -2693,7 +2697,7 @@ const _onRun = ((runRequest, windowContents, windowEnabled, titles) => {
     .map(([_id, editor]) => editor.state.doc.toString());
   const croquet = enabled.find(([id, obj]) => {
     return titles.map.get(id).title === "Croquet"})?.[1].state.doc.toString();
-  if (!croquet) {
+  if (!croquet && !isLocal) {
     console.log("No Croquet spec found");
   }
   iframe.dom.contentWindow.postMessage({code: code, croquet, path: id});
@@ -2794,7 +2798,7 @@ const _goTo = ((padView, positions, dblClick, viewId) => {
     <script type="module">
       import {ProgramState, globals} from "./renkon-core.js";
       import {newInspector} from "./renkon-inspector.js";
-      import {start, startNoCroquet, parse, extract, splitStrs, toFunction, trimParenthesis} from "./croquet.js";
+      import {startWithCodeMirrorWithCroquet, startWithCodeMirrorNoCroquet, parse, extract, splitStrs, toFunction, trimParenthesis} from "./croquet.js";
       window.RenkonWeb = {globals};
       let prevSession;
       let prevView;
@@ -2807,10 +2811,10 @@ const _goTo = ((padView, positions, dblClick, viewId) => {
         }
         if (evt.data && Array.isArray(evt.data.code)) {
           if (!croquet?.appParameters?.name) {
-              startNoCroquet({code: evt.data.code.map((c, i) => ([(i).toString(), c])), ProgramState});
+              startWithCodeMirrorNoCroquet({code: evt.data.code.map((c, i) => ([(i).toString(), c])), ProgramState});
           } else {
             if (!prevView) {
-              const obj = await start({code: evt.data.code.map((c, i) => ([(i).toString(), c])), ProgramState, croquet, options: {}});
+              const obj = await startWithCodeMirrorWithCroquet({code: evt.data.code.map((c, i) => ([(i).toString(), c])), ProgramState, croquet, options: {}});
               const {CodeMirror, CodeMirrorModel, CodeMirrorView, session} = obj;
               prevSession = session;
               prevView = session.view;
@@ -2951,6 +2955,7 @@ const loadHandler = ((loadReceiver) => {
 [`89`, `const newDocPane = (id, docModel) => {
   const mirror = window.CodeMirror;
   const container = document.createElement("div");
+  console.log("newDocPane", id);
   container.id = \`\${id}-doc-container\`;
   container.classList.add("doc-container");
   container.innerHTML = \`
@@ -3014,6 +3019,7 @@ const initialDoc = ((md) => {
 })(md);
 
 const moveSeparator = ((docSeparators) => {
+  // console.log(docSeparators);
   for (const [id, docSeparator] of docSeparators.map) {
     const container = windowContents.map.get(id);
     container.dom.querySelector(".doc-result").style.width = \`\${docSeparator.docWidth}px\`;

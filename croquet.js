@@ -283,7 +283,7 @@ return {}
 }`.trim();
 }
 
-export function retrive(docName) {
+export function retrieve(docName) {
   return fetch(docName).then((resp) => resp.text()).then((result) => result);
 }
 
@@ -316,7 +316,9 @@ export function extract(codeArray, data1) {
     titlesMap = new Map(data1?.titles?.map?.values);
   }
 
-  const croquet = codeArray.find(([id, _obj]) => titlesMap.get(id).title === "Croquet" && windowEnabledMap?.get(id))?.[1];
+  const croquet = codeArray.find(([id, _obj]) => {
+    return titlesMap.get(id).title === "Croquet" && windowEnabledMap?.get(id)?.enabled;
+  })?.[1];
   const code = codeArray.filter((pair) => (
     !windowEnabledMap.get(pair[0]) ||
       (windowEnabledMap.get(pair[0]).enabled && windowTypesMap.get(pair[0]) === "code" &&
@@ -400,40 +402,7 @@ async function loadApiKey() {
   }
 }
 
-export async function startNoCroquet(args) {
-  ProgramState = args.ProgramState;
-  const codeArray = args.code;
-
-  const {CodeMirror} = await import("./renkon-codemirror.js");
-  const newProgramState = !window.programState;
-  if (newProgramState) {
-    window.programState = new ProgramState(Date.now());
-  }
-  window.programState.updateProgram(codeArray.map((pair) => ({ blockId: pair[0], code: pair[1] })), args.docName);
-  if (newProgramState) {
-    window.programState.evaluate(Date.now());
-  }
-
-  window.CodeMirror = CodeMirror;
-  window.CodeMirrorModel = {
-    create: ({doc, id, creator}) => {
-      const newEditor = window.programState.resolved.get(creator)?.value;
-      // this may not have a value, when the program being run does not have "newEditor.
-      return newEditor(id, {doc});
-    }
-  };
-  window.CodeMirrorView = {
-    create: (Renkon, docModel, extensions) => {
-      if (!docModel.viewState) {
-        return {editor: new CodeMirror.EditorView({doc: docModel.doc, extensions})};
-      }
-      return {editor: docModel}
-    }
-  };
-  return {CodeMirror, CodeMirrorModel: window.CodeMirrorModel, CodeMirrorView: window.CodeMirrorView};
-}
-
-export async function start(args) {
+export async function startWithCodeMirrorWithCroquet(args) {
   // {code, croquet, docName, ProgramState, useApiKeyFile, options = {}}
   ProgramState = args.ProgramState;
   const options = args.options;
@@ -498,10 +467,121 @@ export async function start(args) {
   return {session, ...codeMirrorObj, Croquet, croquetify, toFunction, splitStrs, trimParenthesis};
 }
 
-export async function loader() {
+export async function startNoCodeMirrorWithCroquet(args) {
+  // {code, croquet, docName, ProgramState, useApiKeyFile, options = {}}
+  ProgramState = args.ProgramState;
+  const options = args.options;
+  const codeArray = args.code;
+  const croquet = args.croquet;
+
+  let apiKeyParameters;
+
+  if (args.useApiKeyFile) {
+    apiKeyParameters = await loadApiKey();
+  }
+
+  let appParameters = {...croquet.appParameters, ...apiKeyParameters?.appParameters, ...options.appParameters};
+
+  let parameters = {...croquet, ...apiKeyParameters};
+  // parameters.appParameters = appParameters;
+
+  let {name, realm, types, methods} = parameters;
+
+  const code = codeArray.map(((pair) => pair[1]));
+
+  let debug = appParameters.debug || [];
+  if (!appParameters.name || !appParameters.password) {
+    if (options.offline) {
+      appParameters.autoSleep = 0;
+      debug = [...debug, "offline"];
+      appParameters.name = "abc";
+      appParameters.password = "abc";
+    }
+  }
+
+  if (!document.head.querySelector("#croquet-script")) {
+    const script = document.createElement("script");
+    script.id = "croquet-script";
+    script.src = "./croquet.min.js";
+    script.type = "text/javascript";
+    await new Promise((resolve) => {
+      script.onload = () => resolve(Croquet);
+      document.head.appendChild(script);
+    });
+  }
+
+  realm = realm ? new Map(realm.model.map((key) => [key, "Model"])) : new Map();
+  const {model, view} = croquetify(
+    toFunction(code, name),
+    ProgramState,
+    name,
+    realm,
+    types,
+    methods);
+  model.register(model.name);
+
+  const session = await window.Croquet.Session.join({...appParameters, debug, model, view});
+  return {session, Croquet, croquetify, toFunction, splitStrs, trimParenthesis};
+}
+
+export async function startWithCodeMirrorNoCroquet(args) {
+  ProgramState = args.ProgramState;
+  const codeArray = args.code;
+
+  const newProgramState = !window.programState;
+  if (newProgramState) {
+    window.programState = new ProgramState(Date.now());
+  }
+  window.programState.updateProgram(codeArray.map((pair) => ({ blockId: pair[0], code: pair[1] })), args.docName);
+  if (newProgramState) {
+    window.programState.evaluate(Date.now());
+  }
+
+  if (!codeMirrorObj) {
+    const {CodeMirror} = await import("./renkon-codemirror.js");
+    window.CodeMirror = CodeMirror;
+    window.CodeMirrorModel = {
+      create: ({doc, id, creator}) => {
+        const newEditor = window.programState.resolved.get(creator)?.value;
+        // this may not have a value, when the program being run does not have "newEditor.
+        return newEditor(id, {doc});
+      }
+    };
+    window.CodeMirrorView = {
+      create: (Renkon, docModel, extensions) => {
+        if (!docModel.viewState) {
+          return {editor: new CodeMirror.EditorView({doc: docModel.doc, extensions})};
+        }
+        return {editor: docModel}
+      }
+    };
+    codeMirrorObj = {CodeMirrorModel: window.CodeMirrorModel, CodeMirrorView: window.CodeMirrorView, CodeMirror};
+  }
+
+  return {...codeMirrorObj};
+}
+
+export async function startNoCodeMirrorNoCroquet(args) {
+  ProgramState = args.ProgramState;
+  const codeArray = args.code;
+
+  const newProgramState = !window.programState;
+  if (newProgramState) {
+    window.programState = new ProgramState(Date.now());
+  }
+  window.programState.updateProgram(codeArray.map((pair) => ({ blockId: pair[0], code: pair[1] })), args.docName);
+  if (newProgramState) {
+    window.programState.evaluate(Date.now());
+  }
+
+  return {};
+}
+
+export async function loader(options) {
+  const {codemirror, padName} = options;
   const {basename} = basenames();
-  const docName = `${basename}.renkon`;
-  const result = await retrive(docName);
+  const docName = padName || `${basename}.renkon`;
+  const result = await retrieve(docName);
   const {codeArray, data1} = parse(result);
   const {code, croquet} = extract(codeArray, data1);
   const url = new URL(window.location);
@@ -524,10 +604,18 @@ export async function loader() {
         }
       }
     }
-    return start({code, croquet, ProgramState: window.ProgramState, useApiKeyFile: true, options});
+    if (codemirror) {
+      return startWithCodeMirrorWithCroquet({code, croquet, ProgramState: window.ProgramState, useApiKeyFile: true, options});
+    } else {
+      return startNoCodeMirrorWithCroquet({code, croquet, ProgramState: window.ProgramState, useApiKeyFile: true, options});
+    }
   }
 
-  return startNoCroquet({ProgramState: window.ProgramState, code: codeArray});
+  if (codemirror) {
+    return startWithCodeMirrorNoCroquet({ProgramState: window.ProgramState, code: codeArray});
+  } else {
+    return startNoCodeMirrorNoCroquet({ProgramState: window.ProgramState, code: codeArray});
+  }
 }
 
 /* globals Croquet */
