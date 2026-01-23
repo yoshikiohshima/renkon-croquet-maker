@@ -612,9 +612,9 @@ export async function loader(options) {
   }
 
   if (codemirror) {
-    return startWithCodeMirrorNoCroquet({ProgramState: window.ProgramState, code: codeArray});
+    return startWithCodeMirrorNoCroquet({ProgramState: window.ProgramState, code: code});
   } else {
-    return startNoCodeMirrorNoCroquet({ProgramState: window.ProgramState, code: codeArray});
+    return startNoCodeMirrorNoCroquet({ProgramState: window.ProgramState, code: code});
   }
 }
 
