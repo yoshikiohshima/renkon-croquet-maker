@@ -45,10 +45,10 @@
 "type":"move",
 "width":739.2688656962409,
 "x":5192.0901287411625,
-"y":153.23622200307503}],["25",{"height":3192.194566306451,
+"y":153.23622200307503}],["25",{"height":3121.5000893110664,
 "id":"25",
 "type":"resize",
-"width":758.2334615453842,
+"width":709.0662673533327,
 "x":5186.73225701981,
 "y":2830.4931425640784}],["26",{"height":4892.327415416062,
 "id":"26",
@@ -2013,10 +2013,8 @@ const loader = (() => {
   const input = document.createElement("div");
   input.innerHTML = \`<input id="imageinput" type="file" accept=".json,.renkon">\`;
   const imageInput = input.firstChild;
-  const key = Math.random();
 
   imageInput.onchange = () => {
-
     const file = imageInput.files[0];
     if (!file) {imageInput.remove(); return;}
     new Promise(resolve => {
@@ -2025,29 +2023,7 @@ const loader = (() => {
       reader.readAsArrayBuffer(file);
     }).then(async (data) => {
       const result = new TextDecoder("utf-8").decode(data);
-      const array = new TextEncoder().encode(result);
-      if (isLocal) {
-        Events.send(loadAtOnce, {key: 1, array: [array], done: true});
-        return;
-      }
-      
-      let ind = 0;
-
-      Events.send(loadStart, key);
-      const throttle = array.length > 80000;
-
-      while (ind < array.length) {
-        let buf = array.slice(ind, ind + 2880);
-        Events.send(loadOne, {key, array: buf});
-        ind += 2880;
-        if (throttle) {
-          await new Promise((resolve) => {
-            setTimeout(resolve, 16);
-          });
-        }
-      }
-      Events.send(loadDone, key);
-      imageInput.remove();
+    loadData(result, imageInput);
     });
     imageInput.value = "";
   };
@@ -2055,6 +2031,33 @@ const loader = (() => {
   document.body.appendChild(imageInput);
   imageInput.click();
 })(load);
+
+const loadData = async (data, maybeImageInput) => {
+  const array = new TextEncoder().encode(data);
+  if (isLocal) {
+    Events.send(loadAtOnce, {key: 1, array: [array], done: true});
+    return;
+  }
+      
+  let ind = 0;
+  const key = Math.random();
+
+  Events.send(loadStart, key);
+  const throttle = array.length > 80000;
+
+  while (ind < array.length) {
+    let buf = array.slice(ind, ind + 2880);
+    Events.send(loadOne, {key, array: buf});
+    ind += 2880;
+    if (throttle) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 16);
+      });
+    }
+  }
+  if (maybeImageInput) maybeImageInput.remove();
+  Events.send(loadDone, key);
+}
 
 const nameFromUrl = (() => {
   const maybeUrl = new URL(window.location).searchParams.get("file");
@@ -2065,10 +2068,11 @@ const nameFromUrl = (() => {
 })();
 
 /*
+
 const _loadFromUrl = fetch(nameFromUrl).then((resp) => resp.text()).then((result) => {
+  debugger;
   loadData(result, null);
 });
-
 */
 
 const stringifyInner = (node, seen) => {
