@@ -70,7 +70,7 @@ const containers = (() => {
 })();
 
 
-const {CodeMirrorView} = import("./codemirror.js");
+const {CodeMirrorView} = import("./croquet-codemirror.js");
 
 const editorView = CodeMirrorView.create(Renkon, editorModelId);
 

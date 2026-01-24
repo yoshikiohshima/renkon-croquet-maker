@@ -446,7 +446,7 @@ export async function startWithCodeMirrorWithCroquet(args) {
   }
 
   if (!codeMirrorObj) {
-    const {CodeMirrorModel, CodeMirrorView, CodeMirror} = await import("./codemirror.js");
+    const {CodeMirrorModel, CodeMirrorView, CodeMirror} = await import("./croquet-codemirror.js");
     codeMirrorObj = {CodeMirrorModel, CodeMirrorView, CodeMirror};
     window.CodeMirrorModel = CodeMirrorModel;
     window.CodeMirrorView = CodeMirrorView;
