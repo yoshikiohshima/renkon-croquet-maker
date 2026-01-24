@@ -3020,13 +3020,13 @@ const loadReceiver = Behaviors.select(
     if (prev?.key !== one.at(-1).key) {
       return undefined;
     }
-    return {key: prev.key, array: [...prev.array, one.map(el=>{return new Uint8Array([...el.array])}).flat()]};
+    return {key: prev.key, array: [...prev.array, ...one.map(el => el.array)]}
   },
   loadDone, (prev, done) => {
     if (prev?.key !== done) {
       return undefined;
     }
-    return {key: prev.key, array: prev.array[0], done: true};
+    return {key: prev.key, array: prev.array, done: true};
   },
   loadAtOnce, (_prev, value) => {
     return value;
