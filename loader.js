@@ -528,15 +528,6 @@ export async function startWithCodeMirrorNoCroquet(args) {
   ProgramState = args.ProgramState;
   const codeArray = args.code;
 
-  const newProgramState = !window.programState;
-  if (newProgramState) {
-    window.programState = new ProgramState(Date.now());
-  }
-  window.programState.updateProgram(codeArray.map((pair) => ({ blockId: pair[0], code: pair[1] })), args.docName);
-  if (newProgramState) {
-    window.programState.evaluate(Date.now());
-  }
-
   if (!codeMirrorObj) {
     const {CodeMirror} = await import("./renkon-codemirror.js");
     window.CodeMirror = CodeMirror;
@@ -556,6 +547,15 @@ export async function startWithCodeMirrorNoCroquet(args) {
       }
     };
     codeMirrorObj = {CodeMirrorModel: window.CodeMirrorModel, CodeMirrorView: window.CodeMirrorView, CodeMirror};
+  }
+
+  const newProgramState = !window.programState;
+  if (newProgramState) {
+    window.programState = new ProgramState(Date.now());
+  }
+  window.programState.updateProgram(codeArray.map((pair) => ({ blockId: pair[0], code: pair[1] })), args.docName);
+  if (newProgramState) {
+    window.programState.evaluate(Date.now());
   }
 
   return {...codeMirrorObj};

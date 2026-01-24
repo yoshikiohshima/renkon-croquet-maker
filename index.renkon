@@ -2067,13 +2067,9 @@ const nameFromUrl = (() => {
   return undefined;
 })();
 
-/*
-
 const _loadFromUrl = fetch(nameFromUrl).then((resp) => resp.text()).then((result) => {
-  debugger;
   loadData(result, null);
 });
-*/
 
 const stringifyInner = (node, seen) => {
   if (node === undefined) return undefined;
