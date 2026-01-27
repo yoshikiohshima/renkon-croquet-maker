@@ -84,11 +84,22 @@ export function splitStrs(func, realm) {
   return strs(d);
 }
 
-export function croquetify(func, p, appName, realm, typesString) {
+function makeMethodsString(methods) {
+  const result = [];
+  for (const k in methods) {
+    const f = methods[k];
+    result.push(f.toString());
+  }
+  return result.join("\n\t");
+}
+
+export function croquetify(func, p, appName, realm, typesString, methods) {
   ProgramState = p;
   const funcStr = typeof func === "function" ? func.toString() : func;
   const modelName = appName + "Model";
   const viewName = appName + "View";
+
+  const methodsString = makeMethodsString(methods);
 
   const modelStr = `
 class ${modelName} extends Croquet.Model {
@@ -109,9 +120,14 @@ class ${modelName} extends Croquet.Model {
     this.programState = new ProgramState(0, this);
     this.programState.setupProgram([modelNodeStr, viewEventsStr]);
     this.programState.options = {once: true};
+
     this.programState.evaluate(this.now());
 
     this.initCallFuture();
+
+    if (this.renkonInit) {
+       this.renkonInit();
+    }
 
     this.subscribe(this.id, "viewMessage", this.viewMessage);
     this.subscribe(this.sessionId, "view-join", this.viewJoin);
@@ -185,6 +201,8 @@ class ${modelName} extends Croquet.Model {
     this.publish(this.id, "modelUpdate", this.$changedKeys);
   }
 
+  ${methodsString}
+
   static types() {
     return {
       ProgramState: {
@@ -194,7 +212,8 @@ class ${modelName} extends Croquet.Model {
             scripts: ps.scripts,
             resolved: ps.resolved,
             scratch: ps.scratch,
-            time: ps.time
+            time: ps.time,
+            changeList: ps.changeList,
           };
         },
         read: (obj) => {
@@ -202,6 +221,7 @@ class ${modelName} extends Croquet.Model {
           let ps = new ProgramState(0);
           ps.setupProgram(obj.scripts);
           ps.options = {once: true};
+          ps.changeList = obj.changeList;
           ps.evaluate(obj.time);
           ps.resolved = obj.resolved;
           ps.scratch = obj.scratch;
@@ -325,11 +345,15 @@ export function extract(codeArray, data1) {
        titlesMap.get(pair[0]).title !== "Croquet")
   ));
   if (croquet) {
-    const trimmed = trimParenthesis(croquet);
-    const parsed = JSON.parse(trimmed);
+    const parsed = parseCroquet(croquet);
     return {code, croquet: parsed};
   }
   return {code, croquet: null}
+}
+
+export function parseCroquet(croquet) {
+  const trimmed = trimParenthesis(croquet);
+  return eval("(" + trimmed + ")");
 }
 
 function basenames() {
@@ -407,7 +431,7 @@ export async function startWithCodeMirrorWithCroquet(args) {
   ProgramState = args.ProgramState;
   const options = args.options;
   const codeArray = args.code;
-  const croquet = args.croquet;
+  const {parameters, methods} = args.croquet;
 
   let apiKeyParameters;
 
@@ -415,12 +439,12 @@ export async function startWithCodeMirrorWithCroquet(args) {
     apiKeyParameters = await loadApiKey();
   }
 
-  let appParameters = {...croquet?.appParameters, ...apiKeyParameters?.appParameters, ...options?.appParameters};
+  let appParameters = {...parameters?.appParameters, ...apiKeyParameters?.appParameters, ...options?.appParameters};
 
-  let parameters = {...croquet, ...apiKeyParameters};
+  let croquetParameters = {...parameters, ...apiKeyParameters};
   // parameters.appParameters = appParameters;
 
-  let {name, realm, types, methods} = parameters;
+  let {name, realm, types} = croquetParameters;
 
   const code = codeArray.map(((pair) => pair[1]));
 
@@ -472,7 +496,7 @@ export async function startNoCodeMirrorWithCroquet(args) {
   ProgramState = args.ProgramState;
   const options = args.options;
   const codeArray = args.code;
-  const croquet = args.croquet;
+  const {parameters, methods} =  args.croquet;
 
   let apiKeyParameters;
 
@@ -480,12 +504,12 @@ export async function startNoCodeMirrorWithCroquet(args) {
     apiKeyParameters = await loadApiKey();
   }
 
-  let appParameters = {...croquet.appParameters, ...apiKeyParameters?.appParameters, ...options.appParameters};
+  let appParameters = {...parameters.appParameters, ...apiKeyParameters?.appParameters, ...options.appParameters};
 
-  let parameters = {...croquet, ...apiKeyParameters};
+  let croquetParameters = {...parameters, ...apiKeyParameters};
   // parameters.appParameters = appParameters;
 
-  let {name, realm, types, methods} = parameters;
+  let {name, realm, types} = croquetParameters;
 
   const code = codeArray.map(((pair) => pair[1]));
 
@@ -584,12 +608,13 @@ export async function loader(options) {
   const result = await retrieve(docName);
   const {codeArray, data1} = parse(result);
   const {code, croquet} = extract(codeArray, data1);
+  const {parameters} = croquet;
   const url = new URL(window.location);
   const apiKeyParameters = await loadApiKey();
 
   const q = url.searchParams.get("q");
 
-  if (croquet?.appParameters?.name || q || apiKeyParameters?.appParameters?.name) {
+  if (parameters?.appParameters?.name || q || apiKeyParameters?.appParameters?.name) {
 
     const options = {appParameters: {}};
     if (q) {

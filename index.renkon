@@ -20,12 +20,12 @@
 "type":"resize",
 "width":752.5265951306149,
 "x":-3768.8549944407373,
-"y":162.74088184915206}],["10",{"height":242.41252036308964,
+"y":162.74088184915206}],["10",{"height":578.0447706719546,
 "id":"10",
 "type":"move",
-"width":572.2761911455822,
-"x":-7500.083658748115,
-"y":-326.80539884960064}],["14",{"height":2970.7056226026934,
+"width":719.4258832458329,
+"x":-7495.960808580634,
+"y":-531.1669383355377}],["14",{"height":2970.7056226026934,
 "id":"14",
 "type":"move",
 "width":850.956368095214,
@@ -45,10 +45,10 @@
 "type":"move",
 "width":739.2688656962409,
 "x":5192.0901287411625,
-"y":153.23622200307503}],["25",{"height":3121.5000893110664,
+"y":153.23622200307503}],["25",{"height":3167.5540276899956,
 "id":"25",
 "type":"resize",
-"width":709.0662673533327,
+"width":728.9915280920748,
 "x":5186.73225701981,
 "y":2830.4931425640784}],["26",{"height":4892.327415416062,
 "id":"26",
@@ -70,12 +70,12 @@
 "type":"resize",
 "width":860.5724852794904,
 "x":-7511.728773633648,
-"y":1694.513774786595}],["88",{"height":1365.9169910523408,
+"y":1694.513774786595}],["88",{"height":1480.7946125867425,
 "id":"88",
-"type":"resize",
-"width":762.8654185902838,
+"type":"move",
+"width":734.0176315252023,
 "x":5193.169936123532,
-"y":6109.643191738123}],["89",{"height":1436.4184955864093,
+"y":6107.024769750996}],["89",{"height":1436.4184955864093,
 "id":"89",
 "type":"move",
 "width":946.8236481392878,
@@ -84,8 +84,8 @@
 "id":"90",
 "type":"move",
 "width":785.0824912605583,
-"x":-8351.44418194695,
-"y":-326.8563555586023}],["91",{"height":399.78479399032983,
+"x":-8350.534856693012,
+"y":-523.4098922384826}],["91",{"height":399.78479399032983,
 "id":"91",
 "type":"resize",
 "width":786.4592378715543,
@@ -266,7 +266,7 @@
 "values":[["0","code"],["2","code"],["4","code"],["8","code"],["10","code"],["14","code"],["16","code"],["18","code"],["24","code"],["25","code"],["26","code"],["27","code"],["28","code"],["29","code"],["88","code"],["89","code"],["90","doc"],["91","doc"],["92","doc"],["93","doc"],["94","doc"],["95","doc"],["96","doc"],["97","doc"],["98","doc"],["99","doc"],["100","doc"],["101","doc"],["102","doc"],["103","doc"],["104","doc"],["105","doc"]]}},
 "windows":["0","2","4","8","10","14","16","18","24","25","26","27","28","29","88","89","90","91","92","93","94","95","96","97","98","99","100","101","102","103","104","105"],
 "zIndex":{"map":{"__map":true,
-"values":[["0",114],["2",120],["4",137],["8",108],["10",121],["14",124],["16",126],["18",130],["24",105],["25",133],["26",115],["27",103],["28",113],["29",123],["88",134],["89",135],["90",122],["91",102],["92",112],["93",125],["94",118],["95",127],["96",106],["97",128],["98",129],["99",131],["100",100],["101",132],["102",109],["103",107],["104",111],["105",136]]}}}
+"values":[["0",114],["2",120],["4",122],["8",108],["10",137],["14",124],["16",126],["18",130],["24",105],["25",133],["26",115],["27",103],["28",113],["29",123],["88",121],["89",135],["90",134],["91",102],["92",112],["93",125],["94",118],["95",127],["96",106],["97",128],["98",129],["99",131],["100",100],["101",132],["102",109],["103",107],["104",111],["105",136]]}}}
 {__codeMap: true, value: [[`0`, `const viewExit = Events.receiver({queued: true});
 const viewJoin = Events.receiver({queued: true});
 
@@ -1271,12 +1271,34 @@ const newEditor = (id, docModel) => {
 };
 `],
 [`10`, `({
-  "realm": {"model": [
-    "windows", "windowTypes", "positions", "titles", "windowEnabled",
-    "zIndex", "windowContentsModel", "padTitle", "docSeparators", "initialData",
-    "newId", "padViews", "newWindowRequest", "padTitle", "viewJoin",
-    "viewExit", "xxx", "loadReceiver", "loadHandler"]},
-  "name": "pad"
+  parameters: {
+    appParameters: {
+      /*
+      name: '12346',
+      password: '1',
+      apiKey: "234567_Paste_Your_Own_API_Key_Here_7654321",
+      box: "http://localhost:8888",
+      */
+    },
+    "realm": {"model": [
+      "windows", "windowTypes", "positions", "titles", "windowEnabled",
+      "zIndex", "windowContentsModel", "padTitle", "docSeparators", "initialData",
+      "newId", "padViews", "newWindowRequest", "padTitle", "viewJoin",
+      "viewExit", "xxx", "loadReceiver", "loadHandler"]},
+    "name": "pad"
+  },
+  methods: {
+    renkonInit() {
+      debugger;
+      this.programState.registerEvent("initialWindow", "code");
+    },
+    savePersistentData() {
+      console.log("save");
+    },
+    loadPersistentData() {
+      console.log("load");
+    }
+  }
 })`],
 [`14`, `// {type: "code"|"doc"|"runner"}
 const newWindowRequestFromView = ((viewId, type, padViews) => {
@@ -2042,12 +2064,12 @@ const loadData = async (data, maybeImageInput) => {
   let ind = 0;
   const key = Math.random();
 
-  Events.send(loadStart, key);
+  Events.send(loadEvent, {key, type: "loadStart"});
   const throttle = array.length > 80000;
 
   while (ind < array.length) {
     let buf = array.slice(ind, ind + 2880);
-    Events.send(loadOne, {key, array: buf});
+    Events.send(loadEvent, {key, type: "loadOne", array: buf});
     ind += 2880;
     if (throttle) {
       await new Promise((resolve) => {
@@ -2056,7 +2078,7 @@ const loadData = async (data, maybeImageInput) => {
     }
   }
   if (maybeImageInput) maybeImageInput.remove();
-  Events.send(loadDone, key);
+  Events.send(loadEvent, {key, type: "loadDone"});
 }
 
 const nameFromUrl = (() => {
@@ -2924,7 +2946,7 @@ const _goTo = ((padView, positions, dblClick, viewId) => {
       import {ProgramState, globals} from "./renkon-core.js";
       import {newInspector} from "./renkon-inspector.js";
       import {startWithCodeMirrorWithCroquet, startWithCodeMirrorNoCroquet,
-              parse, splitStrs, toFunction, trimParenthesis} from "./loader.js";
+              parse, splitStrs, toFunction, parseCroquet} from "./loader.js";
       window.RenkonWeb = {globals};
       let prevSession;
       let prevView;
@@ -2933,10 +2955,10 @@ const _goTo = ((padView, positions, dblClick, viewId) => {
         let promise;
         let croquet;
         if (evt.data.croquet) {
-          croquet = JSON.parse(trimParenthesis(evt.data.croquet.trim()));
+          croquet = parseCroquet(evt.data.croquet);
         }
         if (evt.data && Array.isArray(evt.data.code)) {
-          if (!croquet?.appParameters?.name) {
+          if (!croquet?.parameters?.appParameters?.name) {
               startWithCodeMirrorNoCroquet({code: evt.data.code.map((c, i) => ([(i).toString(), c])), ProgramState});
           } else {
             if (!prevView) {
@@ -3006,27 +3028,33 @@ const _goTo = ((padView, positions, dblClick, viewId) => {
   return {dom: runnerIframe};
 };
 `],
-[`88`, `const loadStart = Events.receiver();
-const loadOne = Events.receiver({queued: true});
-const loadDone = Events.receiver();
-const loadAtOnce = Events.receiver();
+[`88`, `const loadAtOnce = Events.receiver();
+const loadEvent = Events.receiver({queued: true});
 
 const loadReceiver = Behaviors.select(
   undefined, // {key:number, array}
-  loadStart, (prev, start) => {
-    return {key: start, array: []};
-  },
-  loadOne, (prev, one) => {
-    if (prev?.key !== one.at(-1).key) {
-      return undefined;
+  loadEvent, (prev, events) => {
+
+    let result = prev;
+    for (const event of events) {
+          console.log(event);
+      if (event.type === "loadStart") {
+        result = {key: event.key, array: []};
+      } else if (event.type === "loadOne") {
+        if (result?.key !== event.key) {
+          result = undefined;
+          break;
+        }
+        result = {key: result.key, array: [...result.array, event.array]}
+      } else if (event.type === "loadDone") {
+        if (result?.key !== event.key ) {
+          result = undefined;
+          break;
+        }
+        result = {key: result.key, array: result.array, done: true}
+      }
     }
-    return {key: prev.key, array: [...prev.array, ...one.map(el => el.array)]}
-  },
-  loadDone, (prev, done) => {
-    if (prev?.key !== done) {
-      return undefined;
-    }
-    return {key: prev.key, array: prev.array, done: true};
+    return result;
   },
   loadAtOnce, (_prev, value) => {
     return value;
