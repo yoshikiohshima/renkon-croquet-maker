@@ -75,11 +75,11 @@
 "type":"move",
 "width":734.0176315252023,
 "x":5193.169936123532,
-"y":6107.024769750996}],["89",{"height":1436.4184955864093,
+"y":6107.024769750996}],["89",{"height":1475.9824959204543,
 "id":"89",
-"type":"move",
-"width":946.8236481392878,
-"x":7015.333716348672,
+"type":"resize",
+"width":945.5396981979883,
+"x":7016.617666289972,
 "y":155.1066768003194}],["90",{"height":395.11443821079865,
 "id":"90",
 "type":"move",
@@ -3140,6 +3140,7 @@ const separatorMove = Events.receiver();
 const docUpdate = Events.receiver();
 
 const updateMarkdownDom = (container, id, doc, md) => {
+  if (container.lastDoc === doc) {return;}
   const result = md.render(doc);
   const div = document.createElement("div");
   div.id = \`\${id}-markdown\`;
@@ -3147,6 +3148,7 @@ const updateMarkdownDom = (container, id, doc, md) => {
   container.dom.querySelector(".markdown")?.remove();
   container.dom.querySelector(".doc-result").appendChild(div);
   div.innerHTML = result;
+  container.lastDoc = doc;
   return div;  
 }
 
