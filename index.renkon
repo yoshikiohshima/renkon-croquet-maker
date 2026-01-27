@@ -25,12 +25,12 @@
 "type":"move",
 "width":719.4258832458329,
 "x":-7495.960808580634,
-"y":-531.1669383355377}],["14",{"height":2970.7056226026934,
+"y":-531.1669383355377}],["14",{"height":3028.6752350649567,
 "id":"14",
-"type":"move",
-"width":850.956368095214,
-"x":-5647.3583849853285,
-"y":166.04790315851048}],["16",{"height":2915.9198423892362,
+"type":"resize",
+"width":800.573008676787,
+"x":-5648.874228169122,
+"y":165.2253187178549}],["16",{"height":2915.9198423892362,
 "id":"16",
 "type":"move",
 "width":763.0884327402407,
@@ -1289,8 +1289,7 @@ const newEditor = (id, docModel) => {
   },
   methods: {
     renkonInit() {
-      debugger;
-      this.programState.registerEvent("initialWindow", "code");
+      // this.programState.registerEvent("initialWindow", "code");
     },
     savePersistentData() {
       console.log("save");
@@ -1303,10 +1302,12 @@ const newEditor = (id, docModel) => {
 [`14`, `// {type: "code"|"doc"|"runner"}
 const newWindowRequestFromView = ((viewId, type, padViews) => {
   return {viewId, type, padView: padViews.map.get(viewId) || padView};
-})(viewId, Events.or(addCode, addRunner, addDoc), padViews, padView);
+})(viewId, Events.or(addCode, addRunner, addDoc, initialWindowFromView), padViews, padView);
 
 const viewId = Renkon.app?.viewId || "local";
 const isLocal = viewId === "local";
+
+const initialWindowFromView = isLocal ? "code" : undefined;
 
 const padView = Behaviors.select(
   {x: 0, y: 0, scale: 1},
