@@ -1,9 +1,9 @@
 {"padTitle":"Croquet-Renkon-pad",
 "positions":{"map":{"__map":true,
-"values":[["0",{"height":5395.935569674719,
+"values":[["0",{"height":5647.502442259792,
 "id":"0",
-"type":"move",
-"width":846.9226824922912,
+"type":"resize",
+"width":870.4848433091676,
 "x":-2056.6875407359244,
 "y":152.3923214222506}],["2",{"height":1384.7453325372853,
 "id":"2",
@@ -25,10 +25,10 @@
 "type":"move",
 "width":719.4258832458329,
 "x":-7495.960808580634,
-"y":-531.1669383355377}],["14",{"height":3028.6752350649567,
+"y":-531.1669383355377}],["14",{"height":3338.603989493141,
 "id":"14",
 "type":"resize",
-"width":800.573008676787,
+"width":691.8269342414026,
 "x":-5648.874228169122,
 "y":165.2253187178549}],["16",{"height":2915.9198423892362,
 "id":"16",
@@ -60,10 +60,10 @@
 "type":"move",
 "width":864.5423830491443,
 "x":1606.8801977518124,
-"y":155.3053442530741}],["28",{"height":5066.90047537631,
+"y":155.3053442530741}],["28",{"height":4729.75306896208,
 "id":"28",
-"type":"move",
-"width":746.5529623442486,
+"type":"resize",
+"width":702.4770201465312,
 "x":-285.2855133531855,
 "y":151.16910000208054}],["29",{"height":2153.912480907299,
 "id":"29",
@@ -270,8 +270,13 @@
 {__codeMap: true, value: [[`0`, `const viewExit = Events.receiver({queued: true});
 const viewJoin = Events.receiver({queued: true});
 
-const newWindowRequest = {...newWindowRequestFromView, id: \`\${newId}\`};
-// const xxx = console.log(newWindowRequest);
+const newWindowRequest = ((newWindowRequestFromView, newId) => {
+  if (newWindowRequestFromView.type === "initial") {
+    if (newId !== 1) {return;}
+    return {...newWindowRequestFromView, id: \`\${newId}\`, type: "code"};
+  }
+  return {...newWindowRequestFromView, id: \`\${newId}\`};
+})(newWindowRequestFromView, newId);
 
 const newId = Behaviors.select(
   0,
@@ -516,7 +521,7 @@ const windowContentsModel = Behaviors.select(
   },
   resetRequest, (prev, resetRequest) => {
     const id = resetRequest.id;
-    prev.map.set(id, {type: "runner"});
+    if (prev.map.get(id)?.type !== "runner") {console.log("inconsistent"); return prev;}
     return {map: prev.map};
   }
 );
@@ -560,7 +565,13 @@ const docSeparators = Behaviors.select(
     prev.map.set(id, {docWidth, editorWidth, editorRight});
     return {map: prev.map};
   }
-)`],
+)
+
+const runRequest = Behaviors.keep(runRequestFromView);
+// this is a workaround to make the view to see the value
+const resetRequest = Behaviors.receiver();
+// const xxx = console.log("runRequest", runRequest);
+`],
 [`2`, `const {h, html, render} = import("./preact.standalone.module.js");
 
 const renkon = (() => {
@@ -1274,17 +1285,18 @@ const newEditor = (id, docModel) => {
   parameters: {
     appParameters: {
       /*
-      name: '12346',
+      name: '12346ac',
       password: '1',
       apiKey: "234567_Paste_Your_Own_API_Key_Here_7654321",
       box: "http://localhost:8888",
+      eventRateLimit: 60,
       */
     },
     "realm": {"model": [
       "windows", "windowTypes", "positions", "titles", "windowEnabled",
       "zIndex", "windowContentsModel", "padTitle", "docSeparators", "initialData",
       "newId", "padViews", "newWindowRequest", "padTitle", "viewJoin",
-      "viewExit", "xxx", "loadReceiver", "loadHandler"]},
+      "viewExit", "xxx", "loadReceiver", "loadHandler", "runRequest", "resetRequest"]},
     "name": "pad"
   },
   methods: {
@@ -1307,7 +1319,7 @@ const newWindowRequestFromView = ((viewId, type, padViews) => {
 const viewId = Renkon.app?.viewId || "local";
 const isLocal = viewId === "local";
 
-const initialWindowFromView = isLocal ? "code" : undefined;
+const initialWindowFromView = isLocal ? "initial" : undefined;
 
 const padView = Behaviors.select(
   {x: 0, y: 0, scale: 1},
@@ -1426,10 +1438,14 @@ const pinnedPositions = Behaviors.select(
 
 const windowContents = Behaviors.select(
   {map: new Map()},
+  resetRequest, (prev, reset) => {
+    prev.map.set(reset.id, newRunner(reset.id));
+  },
   windowContentsModel, (prev, windowContentsModel) => {
     if (windowContentsModel.loaded) {
       prev.map.clear();
     }
+
     const prevKeys = [...prev.map.keys()];
     const newKeys = [...windowContentsModel.map.keys()];
     const olds = prevKeys.filter((e) => !newKeys.includes(e));
@@ -1452,15 +1468,28 @@ const windowContents = Behaviors.select(
       prev.map.set(id, elem);
     });
     return {map: prev.map};
-  },
-  resetRequest, (prev, resetRequest) => {
-    const id = resetRequest.id;
-    prev.map.set(id, newRunner(id));
-    return {map: prev.map};
   }
 );
 
-const initialHome = (() => Events.send(homeUponLoad, "home"))(windowContents, loadHandler);`],
+const initialHome = (() => Events.send(homeUponLoad, "home"))(windowContents, loadHandler);
+ 
+const runHandler = ((runRequest, windowContents, windowEnabled, titles) => {
+  const id = runRequest.id;
+  const iframe = windowContents.map.get(id);
+  const enabled = [...windowContents.map]
+    .filter(([id, obj]) => obj.state && windowEnabled.map.get(id).enabled);
+  const code = enabled
+    .filter(([id, obj]) => titles.map.get(id).title !== "Croquet")
+    .map(([_id, editor]) => editor.state.doc.toString());
+  const croquet = enabled.find(([id, obj]) => {
+    return titles.map.get(id).title === "Croquet"})?.[1].state.doc.toString();
+  if (!croquet && !isLocal) {
+    console.log("No Croquet spec found");
+  }
+  if (!iframe?.dom?.contentWindow) {/* console.log("iframe is not there yet"); */ return}
+  iframe.dom.contentWindow.postMessage({code: code, croquet, path: id});
+})(Events.or(runRequest, doReset), windowContents, windowEnabled, titles);
+`],
 [`16`, `function hoverTooltip(source, options = {}) {
   let setHover = window.CodeMirror.state.StateEffect.define();
   let hoverState = window.CodeMirror.state.StateField.define({
@@ -2174,11 +2203,13 @@ const dismissDelayedButton = Events.receiver();
 const playLeave = Events.receiver();
 const playUp = Events.receiver();
 
+const runRequestFromView = Events.receiver();
+
 const playClickHandler = (evt, delayed) => {
   if (delayed) {
     return;
   }
-  Events.send(runRequest, {id: \`\${Number.parseInt(evt.target.id)}\`});
+  Events.send(runRequestFromView, {id: \`\${Number.parseInt(evt.target.id)}\`});
 }
 
 const playDownHandler = (evt) => {
@@ -2835,23 +2866,6 @@ const showGraph = Behaviors.collect(
   document.querySelector("#showGraph").textContent = str;
 })(showGraph);
 
-const _onRun = ((runRequest, windowContents, windowEnabled, titles) => {
-  const id = runRequest.id;
-  const iframe = windowContents.map.get(id);
-  const enabled = [...windowContents.map]
-    .filter(([id, obj]) => obj.state && windowEnabled.map.get(id).enabled);
-  const code = enabled
-    .filter(([id, obj]) => titles.map.get(id).title !== "Croquet")
-    .map(([_id, editor]) => editor.state.doc.toString());
-  const croquet = enabled.find(([id, obj]) => {
-    return titles.map.get(id).title === "Croquet"})?.[1].state.doc.toString();
-  if (!croquet && !isLocal) {
-    console.log("No Croquet spec found");
-  }
-  iframe.dom.contentWindow.postMessage({code: code, croquet, path: id});
-})(runRequest, windowContents, windowEnabled, titles);
-
-
 const resetHandler = Events.select(
   {},
   resetRequest, (prev, reset) => {
@@ -2877,8 +2891,6 @@ const resetHandler = Events.select(
 
 const doReset = Events.receiver();
 
-const _onReset = Events.send(runRequest, doReset);
-
 const _onInspect = ((inspectRequest) => {
   const id = inspectRequest.id;
   const iframe = windowContents.map.get(id);
@@ -2889,8 +2901,7 @@ const remove = Events.receiver();
 const titleEditChange = Events.receiver();
 const enabledChange = Events.receiver();
 const pinRequest = Events.receiver();
-const runRequest = Events.receiver();
-const resetRequest = Events.receiver();
+
 const inspectRequest = Events.receiver();
 
 const _goTo = ((padView, positions, dblClick, viewId) => {

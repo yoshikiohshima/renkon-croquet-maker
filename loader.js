@@ -50,7 +50,6 @@ function decls(funcStr, realm) {
 
   const viewToModel = new Set(viewVarsArray).intersection(new Set(modelUsesArray));
   const modelToView = new Set(modelVarsArray).intersection(new Set(viewUsesArray));
-
   return {modelDecls, viewDecls, viewToModel, modelToView, types, realm};
 }
 
