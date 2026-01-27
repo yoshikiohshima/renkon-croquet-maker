@@ -3035,10 +3035,8 @@ const loadEvent = Events.receiver({queued: true});
 const loadReceiver = Behaviors.select(
   undefined, // {key:number, array}
   loadEvent, (prev, events) => {
-
     let result = prev;
     for (const event of events) {
-          console.log(event);
       if (event.type === "loadStart") {
         result = {key: event.key, array: []};
       } else if (event.type === "loadOne") {
